@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class User(AbstractUser):
@@ -35,6 +37,22 @@ class AgentProfile(models.Model):
     agent_id = models.CharField(max_length=100, unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    assigned_region = models.CharField(max_length=100, blank=True, null=True, help_text="Geographical region or LGA assigned to the agent")
+    is_active = models.BooleanField(default=True)
+    data_created = models.DateTimeField(auto_now_add=True)
+    data_updated = models.DateTimeField(auto_now=True)
+
+
+    def save(self, *args, **kwargs):
+        if not self.agent_id:
+            last_agent = AgentProfile.objects.all().order_by('id').last()
+            if last_agent:
+                last_id = int(last_agent.agent_id.split('AGT')[-1])
+                new_id = last_id + 1
+            else:
+                new_id = 1
+            self.agent_id = f"AGT{new_id:04d}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Agent Profile for {self.user.username}"
@@ -118,3 +136,8 @@ class StoreOwner(User):
 
     class Meta:
         proxy = True
+
+@receiver(post_save, sender=Agent)
+def create_agent_profile(sender, instance, created, **kwargs):
+    if created and instance.role == instance.Role.AGENT:
+        AgentProfile.objects.create(user=instance)
