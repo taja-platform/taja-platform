@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import BaseUserManager
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class User(AbstractUser):
@@ -33,7 +35,7 @@ class AgentProfile(models.Model):
     agent_id = models.CharField(max_length=100, unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
-    
+
 
 
     def __str__(self):
@@ -58,7 +60,7 @@ class AdminManager(BaseUserManager):
 class Admin(User):
     base_role = User.Role.ADMIN
 
-    objects = AdminManager()
+    agent = AdminManager()
 
     class Meta:
         proxy = True
@@ -66,7 +68,7 @@ class Admin(User):
 class Agent(User):
     base_role = User.Role.AGENT
 
-    objects = AgentManager()
+    agent = AgentManager()
 
     class Meta:
         proxy = True
@@ -74,7 +76,7 @@ class Agent(User):
 class CallCenter(User):
     base_role = User.Role.CALL_CENTER
 
-    objects = CallCenterManager()
+    callcenter = CallCenterManager()
  
     class Meta:
         proxy = True
@@ -82,7 +84,18 @@ class CallCenter(User):
 class DeliveryPerson(User):
     base_role = User.Role.DELIVERY_PERSON
 
-    objects = DeliveryPersonManager()
+    deliveryperson = DeliveryPersonManager()
+
+    class Meta:
+        proxy = True
+
+class StoreOwnerManager(BaseUserManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(role=User.Role.STORE_OWNER)
+
+class StoreOwner(User):
+    base_role = User.Role.STORE_OWNER
+    storeowner = StoreOwnerManager()
 
     class Meta:
         proxy = True
