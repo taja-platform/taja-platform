@@ -57,7 +57,21 @@ class AgentProfile(models.Model):
     def __str__(self):
         return f"Agent Profile for {self.user.username}"
 
+class StoreOwnerProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="store_owner_profile",
+        limit_choices_to={"role": User.Role.STORE_OWNER},
+    )
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    business_name = models.CharField(max_length=150)
+    address = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.business_name} ({self.user.username})"
 
 # Role Managers
 class BaseRoleManager(BaseUserManager):
@@ -141,3 +155,8 @@ class StoreOwner(User):
 def create_agent_profile(sender, instance, created, **kwargs):
     if created and instance.role == instance.Role.AGENT:
         AgentProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=StoreOwner)
+def create_agent_profile(sender, instance, created, **kwargs):
+    if created and instance.role == instance.Role.STORE_OWNER:
+        StoreOwnerProfile.objects.create(user=instance)
