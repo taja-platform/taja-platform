@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export default function SignIn() {
     const [email, setEmail] = useState('');
@@ -8,14 +9,23 @@ export default function SignIn() {
     const [showPassword, setShowPassword] = useState(false);
     const [emailFocused, setEmailFocused] = useState(false);
     const [passwordFocused, setPasswordFocused] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
 
-        // Dummy delay to simulate API call
+        // Dummy authentication
         setTimeout(() => {
-            toast.success('Logged in successfully!');
+            if (email === 'admin@tajam.com' && password === 'password123') {
+                toast.success('Logged in successfully!');
+                // Set a flag in session storage to persist login state
+                sessionStorage.setItem('isAuthenticated', 'true');
+                // Navigate to the dashboard home page
+                navigate('/');
+            } else {
+                toast.error('Invalid credentials. Please try again.');
+            }
             setIsLoading(false);
         }, 1500);
     };
