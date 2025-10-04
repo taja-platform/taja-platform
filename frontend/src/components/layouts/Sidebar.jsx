@@ -13,7 +13,7 @@ export default function Sidebar({ isOpen }) {
         <aside className={`transition-all duration-300 bg-gray-900 text-white ${isOpen ? 'w-64' : 'w-20'}`}>
             <div className="flex items-center justify-center h-20 border-b border-gray-800">
                 {/* Your Logo Here */}
-                <h1 className="text-2xl font-bold">{isOpen ? 'TAJAM' : 'T'}</h1>
+                <h1 className="text-2xl font-bold">{isOpen ? 'TAJA' : 'T'}</h1>
             </div>
             <nav className="mt-6">
                 {navigation.map((item) => (

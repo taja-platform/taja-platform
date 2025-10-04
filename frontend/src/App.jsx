@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 // Layout Component
-import DashboardLayout from './components/layout/DashboardLayout';
+import DashboardLayout from './components/layouts/DashboardLayout';
 
 // Page Components
 import LoginPage from './pages/Login';

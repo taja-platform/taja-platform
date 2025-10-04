@@ -1,5 +1,5 @@
 // src/pages/HomePage.jsx
-import StatCard from '../components/specific/StatCard';
+import StatCard from '../components/specifics/StatCard';
 import { UsersIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline'; // Example icons
 
 export default function HomePage() {

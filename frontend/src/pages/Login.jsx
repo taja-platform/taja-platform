@@ -17,10 +17,10 @@ export default function SignIn() {
 
         // Dummy authentication
         setTimeout(() => {
-            if (email === 'admin@tajam.com' && password === 'password123') {
+            if (email === 'tunde@taja.com' && password === 'password123') {
                 toast.success('Logged in successfully!');
                 // Set a flag in session storage to persist login state
-                sessionStorage.setItem('isAuthenticated', 'true');
+                // sessionStorage.setItem('isAuthenticated', 'true');
                 // Navigate to the dashboard home page
                 navigate('/');
             } else {
