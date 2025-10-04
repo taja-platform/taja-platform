@@ -12,4 +12,4 @@ class ShopViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # link shop to the agent creating it
-        serializer.save(owner=self.request.user.storeowner_profile)
+        serializer.save(created_by=self.request.user)
