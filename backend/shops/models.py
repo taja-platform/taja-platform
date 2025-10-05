@@ -28,6 +28,10 @@ class Shop(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
 
+    _state = models.CharField(max_length=100, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+
+
     # System fields
     is_active = models.BooleanField(default=True)
     date_created = models.DateTimeField(auto_now_add=True)
