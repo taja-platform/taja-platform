@@ -1,0 +1,42 @@
+import React, { createContext, useState, useEffect } from "react";
+import api from "../api/api";
+
+export const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const access = localStorage.getItem("access");
+    if (access) {
+      fetchUserProfile();
+    }
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const res = await api.get("/accounts/me/");
+      setUser(res.data);
+    } catch (err) {
+      console.error("Failed to fetch user profile" + err);
+    }
+  };
+
+  const login = async (username, password) => {
+    const res = await api.post("/auth/login/", { username, password });
+    localStorage.setItem("access", res.data.access);
+    localStorage.setItem("refresh", res.data.refresh);
+    await fetchUserProfile();
+  };
+
+  const logout = () => {
+    localStorage.clear();
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
