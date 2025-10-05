@@ -63,7 +63,6 @@ export default function AgentsPage() {
         address: formData.address,
         assigned_region: formData.assigned_region,
         password: formData.password,
-        role: "agent", // Set role as agent
       };
 
       await api.post("/accounts/agents/", payload);

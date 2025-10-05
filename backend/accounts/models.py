@@ -9,11 +9,13 @@ from django.utils.translation import gettext_lazy as _
 
 class CustomUserManager(BaseUserManager):
     """Custom user manager using email instead of username."""
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Users must have an email address")
+
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        user = self.model(email=email, **extra_fields)  # no username here
         user.set_password(password)
         user.save(using=self._db)
         return user
