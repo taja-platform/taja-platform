@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { HomeIcon, UserGroupIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
 const navigation = [
-    { name: 'Dashboard', href: '/', icon: HomeIcon },
+    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Agents', href: '/agents', icon: UserGroupIcon },
     { name: 'Shops', href: '/shops', icon: MapPinIcon },
 ];

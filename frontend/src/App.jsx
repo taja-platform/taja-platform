@@ -1,32 +1,38 @@
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
-// Layout Component
+// Layouts
 import DashboardLayout from './components/layouts/DashboardLayout';
 
-// Page Components
+// Pages
 import LoginPage from './pages/Login';
 import HomePage from './pages/HomePage';
 import AgentsPage from './pages/AgentsPage';
 import ShopsPage from './pages/ShopsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+// Auth
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
 function App() {
   return (
     <>
       <Toaster position="top-right" richColors />
+
       <Routes>
-        {/* Public Route: Login Page */}
+        {/* Public route */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Protected Routes: Dashboard and its children */}
-        <Route element={<DashboardLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/agents" element={<AgentsPage />} />
-          <Route path="/shops" element={<ShopsPage />} />
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<HomePage />} />
+            <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/shops" element={<ShopsPage />} />
+          </Route>
         </Route>
 
-        {/* Catch-all route for pages that don't exist */}
+        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>

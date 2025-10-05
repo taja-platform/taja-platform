@@ -1,9 +1,10 @@
-import { useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from "../context/AuthContext";
 
 export default function SignIn() {
+    const { user } = useContext(AuthContext);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { login } = useContext(AuthContext);
@@ -12,6 +13,12 @@ export default function SignIn() {
     const [emailFocused, setEmailFocused] = useState(false);
     const [passwordFocused, setPasswordFocused] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user) {
+        navigate("/dashboard");
+        }
+    }, [user]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
