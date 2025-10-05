@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from "../context/AuthContext";
 
 export default function SignIn() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const { login } = useContext(AuthContext);
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [emailFocused, setEmailFocused] = useState(false);
@@ -15,19 +17,15 @@ export default function SignIn() {
         e.preventDefault();
         setIsLoading(true);
 
-        // Dummy authentication
-        setTimeout(() => {
-            if (email === 'tunde@taja.com' && password === 'password123') {
-                toast.success('Logged in successfully!');
-                // Set a flag in session storage to persist login state
-                // sessionStorage.setItem('isAuthenticated', 'true');
-                // Navigate to the dashboard home page
-                navigate('/');
-            } else {
-                toast.error('Invalid credentials. Please try again.');
+        try {
+            await login(email, password);
+            toast.success('Logged in successfully!');
+            window.location.href = "/dashboard"; // redirect after login
+            } catch (err) {
+            toast.error('Invalid credentials. Please try again.');
             }
             setIsLoading(false);
-        }, 1500);
+        };
     };
 
     return (
