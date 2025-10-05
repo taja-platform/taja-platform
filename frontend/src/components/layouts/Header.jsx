@@ -7,9 +7,11 @@ import {
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
   PencilSquareIcon,
+  Bars3Icon, // For hamburger (when sidebar closed)
+  XMarkIcon, // For close (when sidebar open)
 } from "@heroicons/react/24/outline";
 
-export default function Header() {
+export default function Header({ sidebarOpen, onToggleSidebar }) {
   const { user, logout, updateUser, fetchUserProfile } =
     useContext(AuthContext);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -62,7 +64,20 @@ export default function Header() {
     <>
       {/* Header Bar */}
       <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
-        <h1 className="text-xl font-bold text-gray-800">
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 text-gray-500 hover:text-gray-700 transition-colors duration-200 rounded-lg hover:bg-gray-100 md:hidden lg:block"
+          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          {sidebarOpen ? (
+            <XMarkIcon className="h-6 w-6" />
+          ) : (
+            <Bars3Icon className="h-6 w-6" />
+          )}
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-800 flex-1 text-center md:text-left md:ml-4">
           Taja Admin Dashboard
         </h1>
 

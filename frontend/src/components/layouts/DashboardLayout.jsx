@@ -11,7 +11,10 @@ export default function DashboardLayout() {
         <div className="flex h-screen bg-gray-50">
             <Sidebar isOpen={sidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden">
-                <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+                <Header 
+                    sidebarOpen={sidebarOpen}
+                    onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+                />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
                     <Outlet /> {/* Child pages will be rendered here */}
                 </main>
