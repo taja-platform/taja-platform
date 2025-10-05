@@ -3,9 +3,37 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
+
+
+class CustomUserManager(BaseUserManager):
+    """Custom user manager using email instead of username."""
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Users must have an email address")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("role", "developer")
+        return self.create_user(email, password, **extra_fields)
+
 
 
 class User(AbstractUser):
+    username = None  # remove username
+    email = models.EmailField(_("email address"), unique=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []  # no username required
+
+    objects = CustomUserManager()
     class Role(models.TextChoices):
         DEVELOPER = "developer", "Developer"   # superuser
         ADMIN = "admin", "Admin"               # platform admin

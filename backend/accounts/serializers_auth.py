@@ -7,6 +7,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Extends the default JWT serializer to include user details (role, email, etc.)
     """
+    username_field = "email"
 
     def validate(self, attrs):
         data = super().validate(attrs)
