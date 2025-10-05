@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminOrDeveloper
 from .models import User, AgentProfile
 from .serializers import AgentProfileSerializer, AgentCreateSerializer, UserSerializer
-from rest_framework import generics, permissions
+from rest_framework import generics
 
 class AgentViewSet(viewsets.ModelViewSet):
     """
@@ -34,10 +34,13 @@ class AgentViewSet(viewsets.ModelViewSet):
 
 
 
-class MeView(generics.RetrieveAPIView):
+class MeView(generics.RetrieveUpdateAPIView):
+    """
+    Allows authenticated users to GET and UPDATE their own profile.
+    Supports GET and PATCH requests.
+    """
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminOrDeveloper]
 
-    def get(self, request, *args, **kwargs):
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
+    def get_object(self):
+        return self.request.user
