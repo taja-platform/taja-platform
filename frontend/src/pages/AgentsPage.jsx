@@ -19,33 +19,12 @@ export default function AgentsPage() {
     email: "",
     phone_number: "",
     address: "",
-    assigned_region: "",
+    state: "",
     password: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const regions = [
-    "Lagos Mainland",
-    "Ikeja",
-    "Lekki",
-    "Yaba",
-    "Surulere",
-    "Ibadan North",
-    "Abeokuta South",
-    "Port Harcourt City",
-    "Enugu East",
-    "Benin City",
-    "Jos North",
-    "Maiduguri Central",
-    "Kano Municipal",
-    "Kaduna North",
-    "Owerri West",
-    "Ilorin East",
-    "Asaba",
-    "Calabar South",
-    "Uyo",
-    "Makurdi",
-  ];
+  const states = ['Lagos', 'Abuja', 'Kano', 'Rivers', 'Oyo', 'Kaduna', 'Enugu', 'Plateau', 'Delta', 'Imo'];
 
   // Fetch agents from backend
   const fetchAgents = async () => {
@@ -73,7 +52,7 @@ export default function AgentsPage() {
       email: agent.user?.email || "",
       phone_number: agent.phone_number || "",
       address: agent.address || "",
-      assigned_region: agent.assigned_region || "",
+      state: agent.state || "",
       password: "", // leave blank (only change if entered)
     });
     setIsEditModalOpen(true);
@@ -94,7 +73,7 @@ export default function AgentsPage() {
         email: formData.email, // Flat field
         phone_number: formData.phone_number,
         address: formData.address,
-        assigned_region: formData.assigned_region,
+        state: formData.state,
       };
 
       if (formData.password.trim() !== "") {
@@ -145,7 +124,7 @@ export default function AgentsPage() {
       !formData.email ||
       !formData.phone_number ||
       !formData.address ||
-      !formData.assigned_region ||
+      !formData.state ||
       !formData.password
     ) {
       toast.error("Please fill in all fields.");
@@ -160,7 +139,7 @@ export default function AgentsPage() {
         email: formData.email,
         phone_number: formData.phone_number,
         address: formData.address,
-        assigned_region: formData.assigned_region,
+        state: formData.state,
         password: formData.password,
       };
 
@@ -172,7 +151,7 @@ export default function AgentsPage() {
         email: "",
         phone_number: "",
         address: "",
-        assigned_region: "",
+        state: "",
         password: "",
       });
       setIsModalOpen(false);
@@ -237,7 +216,7 @@ export default function AgentsPage() {
                     Phone
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Region
+                    state
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -261,7 +240,7 @@ export default function AgentsPage() {
                       {agent.phone_number || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {agent.assigned_region || "—"}
+                      {agent.state || "—"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span
@@ -415,24 +394,24 @@ export default function AgentsPage() {
                 </div>
               </div>
 
-              {/* Row 4: Region (Full Width) */}
+              {/* Row 4: state (Full Width) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Region
+                  state
                 </label>
                 <div className="relative">
                   <Map className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <select
-                    name="assigned_region"
-                    value={formData.assigned_region}
+                    name="state"
+                    value={formData.state}
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent appearance-none bg-white"
                     required
                   >
-                    <option value="">Select a region</option>
-                    {regions.map((region) => (
-                      <option key={region} value={region}>
-                        {region}
+                    <option value="">Select a state</option>
+                    {states.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
                       </option>
                     ))}
                   </select>
@@ -527,8 +506,8 @@ export default function AgentsPage() {
                   <br /> {selectedAgent.phone_number || "N/A"}
                 </p>
                 <p>
-                  <span className="font-medium">Region:</span>
-                  <br /> {selectedAgent.assigned_region || "—"}
+                  <span className="font-medium">state:</span>
+                  <br /> {selectedAgent.state || "—"}
                 </p>
               </div>
 
@@ -645,7 +624,7 @@ export default function AgentsPage() {
                 </div>
               </div>
 
-              {/* Row 3: Address & Region */}
+              {/* Row 3: Address & state */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -663,17 +642,17 @@ export default function AgentsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Region
+                    state
                   </label>
                   <select
-                    name="assigned_region"
-                    value={formData.assigned_region}
+                    name="state"
+                    value={formData.state}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 bg-white"
                     required
                   >
-                    <option value="">Select region</option>
-                    {regions.map((r) => (
+                    <option value="">Select state</option>
+                    {states.map((r) => (
                       <option key={r} value={r}>
                         {r}
                       </option>

@@ -9,13 +9,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         fake = Faker("en_NG")
 
-        # Example Nigerian regions (states/LGAs)
-        regions = [
-            "Lagos Mainland", "Ikeja", "Lekki", "Yaba", "Surulere", "Ibadan North", 
-            "Abeokuta South", "Port Harcourt City", "Enugu East", "Benin City", 
-            "Jos North", "Maiduguri Central", "Kano Municipal", "Kaduna North", 
-            "Owerri West", "Ilorin East", "Asaba", "Calabar South", "Uyo", "Makurdi"
-        ]
+        # Example Nigerian states (states/LGAs)
+        states = ['Lagos', 'Abuja', 'Kano', 'Rivers', 'Oyo', 'Kaduna', 'Enugu', 'Plateau', 'Delta', 'Imo']
+
 
         # Nigerian phone number prefixes
         prefixes = ["0803", "0805", "0810", "0813", "0815", "0905", "0701", "0706", "0916"]
@@ -29,7 +25,7 @@ class Command(BaseCommand):
             email = f"{first_name.lower()}.{last_name.lower()}@tajaagents.com"
             phone_number = f"{random.choice(prefixes)}{random.randint(1000000, 9999999)}"
             address = fake.address().replace("\n", ", ")
-            region = random.choice(regions)
+            state = random.choice(states)
 
             if not Agent.objects.filter(email=email).exists():
                 # Create the Agent user
@@ -45,10 +41,10 @@ class Command(BaseCommand):
                 profile = agent.agent_profile
                 profile.phone_number = phone_number
                 profile.address = address
-                profile.assigned_region = region
+                profile.state = state
                 profile.save()
 
                 created += 1
-                self.stdout.write(self.style.SUCCESS(f"✅ Created Agent: {first_name} {last_name} - {region}"))
+                self.stdout.write(self.style.SUCCESS(f"✅ Created Agent: {first_name} {last_name} - {state}"))
 
         self.stdout.write(self.style.SUCCESS(f"\n🎯 Successfully created {created} Nigerian agents!"))

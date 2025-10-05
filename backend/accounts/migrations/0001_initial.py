@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
                 ('agent_id', models.CharField(max_length=100, unique=True)),
                 ('phone_number', models.CharField(blank=True, max_length=15, null=True)),
                 ('address', models.TextField(blank=True, null=True)),
-                ('assigned_region', models.CharField(blank=True, help_text='Geographical region or LGA assigned to the agent', max_length=100, null=True)),
+                ('state', models.CharField(blank=True, help_text='Geographical region or LGA assigned to the agent', max_length=100, null=True)),
                 ('is_active', models.BooleanField(default=True)),
                 ('data_created', models.DateTimeField(auto_now_add=True)),
                 ('data_updated', models.DateTimeField(auto_now=True)),

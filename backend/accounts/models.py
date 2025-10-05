@@ -69,7 +69,7 @@ class AgentProfile(models.Model):
     agent_id = models.CharField(max_length=100, unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
-    assigned_region = models.CharField(max_length=100, blank=True, null=True, help_text="Geographical region or LGA assigned to the agent")
+    state = models.CharField(max_length=100, blank=True, null=True, help_text="State assigned to the agent")
     is_active = models.BooleanField(default=True)
     data_created = models.DateTimeField(auto_now_add=True)
     data_updated = models.DateTimeField(auto_now=True)

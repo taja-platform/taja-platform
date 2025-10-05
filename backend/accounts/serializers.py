@@ -17,7 +17,7 @@ class AgentProfileSerializer(serializers.ModelSerializer):
         model = AgentProfile
         fields = [
             "user", "agent_id", "phone_number", "address",
-            "assigned_region", "is_active", "data_created", "data_updated",
+            "state", "is_active", "data_created", "data_updated",
         ]
         read_only_fields = ["agent_id", "data_created", "data_updated"]
 
@@ -26,17 +26,17 @@ class AgentCreateSerializer(serializers.ModelSerializer):
     # This serializer remains unchanged and works correctly for creating new agents.
     phone_number = serializers.CharField(write_only=True, required=False)
     address = serializers.CharField(write_only=True, required=False)
-    assigned_region = serializers.CharField(write_only=True, required=False)
+    state = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = [ "email", "password", "first_name", "last_name", "phone_number", "address", "assigned_region"]
+        fields = [ "email", "password", "first_name", "last_name", "phone_number", "address", "state"]
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
         phone_number = validated_data.pop("phone_number", None)
         address = validated_data.pop("address", None)
-        assigned_region = validated_data.pop("assigned_region", None)
+        state = validated_data.pop("state", None)
         user = User.objects.create_user(
             email=validated_data["email"],
             password=validated_data["password"],
@@ -45,7 +45,7 @@ class AgentCreateSerializer(serializers.ModelSerializer):
             role=User.Role.AGENT,
         )
         AgentProfile.objects.create(
-            user=user, phone_number=phone_number, address=address, assigned_region=assigned_region,
+            user=user, phone_number=phone_number, address=address, state=state,
         )
         return user
 
@@ -78,7 +78,7 @@ class AgentSerializer(serializers.ModelSerializer):
             # AgentProfile's own fields:
             "phone_number",
             "address",
-            "assigned_region",
+            "state",
             "is_active",
         ]
     
