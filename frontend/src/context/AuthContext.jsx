@@ -40,8 +40,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // 🧩 New helper: update user globally (used after editing profile)
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, fetchUserProfile, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

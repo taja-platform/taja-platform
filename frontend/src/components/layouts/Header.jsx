@@ -10,7 +10,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function Header() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, updateUser, fetchUserProfile } =
+    useContext(AuthContext);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -44,6 +45,13 @@ export default function Header() {
       const res = await api.patch("/accounts/me/", formData);
       toast.success("Profile updated successfully!");
       setShowEditModal(false);
+
+      // Option 1: if /me/ PATCH returns full user
+      updateUser(res.data);
+
+      // Option 2: if it returns nothing or partial
+      // await fetchUserProfile();
+      
     } catch (err) {
       toast.error("Failed to update profile.");
       console.error(err);
@@ -54,7 +62,9 @@ export default function Header() {
     <>
       {/* Header Bar */}
       <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
-        <h1 className="text-xl font-bold text-gray-800">Taja Admin Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-800">
+          Taja Admin Dashboard
+        </h1>
 
         {/* Profile Section */}
         <div className="relative">
