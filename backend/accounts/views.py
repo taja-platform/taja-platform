@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminOrDeveloper
 from .models import User, AgentProfile
-from .serializers import AgentProfileSerializer, AgentCreateSerializer
-
+from .serializers import AgentProfileSerializer, AgentCreateSerializer, UserSerializer
+from rest_framework import generics, permissions
 
 class AgentViewSet(viewsets.ModelViewSet):
     """
@@ -30,3 +30,14 @@ class AgentViewSet(viewsets.ModelViewSet):
         profile = AgentProfile.objects.get(user=user)
         profile_data = AgentProfileSerializer(profile).data
         return Response(profile_data, status=status.HTTP_201_CREATED)
+
+
+
+
+class MeView(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
