@@ -1,0 +1,50 @@
+// src/api/api.js
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL; // or process.env.REACT_APP_API_BASE_URL
+
+const api = axios.create({
+  baseURL: API_BASE,
+});
+
+// Automatically add access token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Handle expired token (auto-refresh)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refresh = localStorage.getItem("refresh");
+
+      if (refresh) {
+        try {
+          const res = await axios.post(`${API_BASE}/auth/refresh/`, { refresh });
+          localStorage.setItem("access", res.data.access);
+          originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
+          return api(originalRequest);
+        } catch (err) {
+          console.error("Token refresh failed, logging out...");
+          localStorage.clear();
+          window.location.href = "/login";
+        }
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default api;
