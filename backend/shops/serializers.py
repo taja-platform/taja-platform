@@ -26,12 +26,24 @@ class ShopSerializer(serializers.ModelSerializer):
             "is_active",
             "date_created",
             "date_updated",
+            "state",
             "owner",
             "created_by",
             "photos",
         ]
         read_only_fields = ["id", "date_created", "date_updated", "owner", "created_by"]
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request', None)
+        
+        # Check if the user is an Admin/Developer and the request is a write operation
+        if request and request.user.is_authenticated:
+            user = request.user
+            # Assuming you have access to the user's Role enum
+            if user.role in [user.Role.ADMIN, user.Role.DEVELOPER] and request.method in ['PUT', 'PATCH']:
+                # Allow Admin/Developer to update is_active status
+                self.fields['is_active'].read_only = False 
+                
     def create(self, validated_data):
         # Extract nested photos if present
         photos_data = validated_data.pop("photos", [])
