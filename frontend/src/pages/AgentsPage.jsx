@@ -136,8 +136,8 @@ export default function AgentsPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
+  // ⭐️ RENAMED: This is now the handleAddAgent function
+  const handleAddAgent = async (e) => {
     e.preventDefault();
     if (
       !formData.first_name ||
@@ -316,7 +316,8 @@ export default function AgentsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {/* ⭐️ UPDATED: Using handleAddAgent */}
+            <form onSubmit={handleAddAgent} className="space-y-6">
               {/* Row 1: First Name & Last Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
