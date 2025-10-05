@@ -11,15 +11,12 @@ class AgentViewSet(viewsets.ModelViewSet):
     ViewSet for managing Agents.
     Only Admins/Developers can access.
     """
-    queryset = User.objects.filter(role=User.Role.AGENT)
+    queryset = AgentProfile.objects.select_related("user").all()
     serializer_class = AgentProfileSerializer
     permission_classes = [IsAuthenticated, IsAdminOrDeveloper]
 
     def get_serializer_class(self):
-        """
-        Use different serializer for create vs. retrieve/list
-        """
-        if self.action in ["create"]:
+        if self.action == "create":
             return AgentCreateSerializer
         return AgentProfileSerializer
 
@@ -30,9 +27,6 @@ class AgentViewSet(viewsets.ModelViewSet):
         profile = AgentProfile.objects.get(user=user)
         profile_data = AgentProfileSerializer(profile).data
         return Response(profile_data, status=status.HTTP_201_CREATED)
-
-
-
 
 class MeView(generics.RetrieveUpdateAPIView):
     """
