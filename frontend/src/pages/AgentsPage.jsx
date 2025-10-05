@@ -10,6 +10,8 @@ export default function AgentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState(null);
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -62,7 +64,72 @@ export default function AgentsPage() {
     setSelectedAgent(agent);
     setIsViewModalOpen(true);
   };
+  // Open Edit Modal with prefilled data
+  const handleEditAgent = (agent) => {
+    setEditingAgent(agent);
+    setFormData({
+      first_name: agent.user?.first_name || "",
+      last_name: agent.user?.last_name || "",
+      email: agent.user?.email || "",
+      phone_number: agent.phone_number || "",
+      address: agent.address || "",
+      assigned_region: agent.assigned_region || "",
+      password: "", // leave blank (only change if entered)
+    });
+    setIsEditModalOpen(true);
+  };
 
+  // src/pages/AgentsPage.jsx
+
+  const handleUpdateAgent = async (e) => {
+    e.preventDefault();
+    if (!editingAgent) return;
+
+    setIsSubmitting(true);
+    try {
+      // ✅ CORRECTED: Send a FLAT payload to match AgentSerializer
+      const payload = {
+        first_name: formData.first_name, // Flat field
+        last_name: formData.last_name, // Flat field
+        email: formData.email, // Flat field
+        phone_number: formData.phone_number,
+        address: formData.address,
+        assigned_region: formData.assigned_region,
+      };
+
+      if (formData.password.trim() !== "") {
+        payload.password = formData.password; // Flat field
+      }
+
+      await api.patch(`/accounts/agents/${editingAgent.agent_id}/`, payload);
+
+      toast.success("Agent updated successfully!");
+      setIsEditModalOpen(false);
+      setEditingAgent(null);
+      fetchAgents();
+    } catch (err) {
+      // ✅ ADD THIS LOGGING BLOCK
+      console.error("--- FULL API ERROR RESPONSE ---");
+      if (err.response) {
+        // This will print the exact validation error from Django
+        console.error("Data:", err.response.data);
+        console.error("Status:", err.response.status);
+        console.error("Headers:", err.response.headers);
+      } else if (err.request) {
+        console.error("Request:", err.request);
+      } else {
+        console.error("Error:", err.message);
+      }
+      console.error("-----------------------------");
+
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to update agent. Check console for details."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -214,7 +281,10 @@ export default function AgentsPage() {
                       >
                         View
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900">
+                      <button
+                        onClick={() => handleEditAgent(agent)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
                         Edit
                       </button>
                       <button className="text-red-600 hover:text-red-900">
@@ -493,6 +563,158 @@ export default function AgentsPage() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Agent Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-800 flex items-center space-x-2">
+                <User className="w-5 h-5 text-gray-500" />
+                <span>Edit Agent</span>
+              </h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateAgent} className="space-y-6">
+              {/* Row 1: First Name & Last Name */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Email & Phone */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone_number"
+                    value={formData.phone_number}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Address & Region */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Region
+                  </label>
+                  <select
+                    name="assigned_region"
+                    value={formData.assigned_region}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 bg-white"
+                    required
+                  >
+                    <option value="">Select region</option>
+                    {regions.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 4: Password (Optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password (leave blank to keep current)
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900"
+                  placeholder="Enter new password if changing"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-gray-900 text-white font-semibold px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
