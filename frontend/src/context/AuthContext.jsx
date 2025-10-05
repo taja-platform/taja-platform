@@ -23,11 +23,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const res = await api.post("/auth/login/", { email, password });
-    localStorage.setItem("access", res.data.access);
-    localStorage.setItem("refresh", res.data.refresh);
-    await fetchUserProfile();
+    try {
+      const res = await api.post("/auth/login/", { email, password });
+      localStorage.setItem("access", res.data.access);
+      localStorage.setItem("refresh", res.data.refresh);
+      await fetchUserProfile();
+    } catch (error) {
+      console.error("Login failed:", error.response?.data || error.message);
+      throw error;
+    }
   };
+
 
   const logout = () => {
     localStorage.clear();

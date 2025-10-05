@@ -21,11 +21,12 @@ export default function SignIn() {
             await login(email, password);
             toast.success('Logged in successfully!');
             window.location.href = "/dashboard"; // redirect after login
-            } catch (err) {
-            toast.error('Invalid credentials. Please try again.');
-            }
-            setIsLoading(false);
-        };
+        } catch (err) {
+            const errorMsg = err.response?.data?.detail || "Invalid credentials.";
+            toast.error(errorMsg);
+            console.error("Login error:", err);
+        }
+        setIsLoading(false);
     };
 
     return (
