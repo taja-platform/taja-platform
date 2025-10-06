@@ -67,7 +67,7 @@ class MeView(generics.RetrieveUpdateAPIView):
     Supports GET and PATCH requests.
     """
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrDeveloper]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user

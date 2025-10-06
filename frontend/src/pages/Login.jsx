@@ -16,7 +16,13 @@ export default function SignIn() {
 
     useEffect(() => {
         if (user) {
-        navigate("/dashboard");
+            if (user.role === 'agent') {
+                navigate("/agent");
+                return;
+            }
+            else if (user.role === 'admin' || user.role === 'developer') {
+                navigate("/dashboard");
+            }
         }
     }, [user]);
 
@@ -27,7 +33,14 @@ export default function SignIn() {
         try {
             await login(email, password);
             toast.success('Logged in successfully!');
-            window.location.href = "/dashboard"; // redirect after login
+            console.log("Logged in user:", user);
+            if (user.role === 'agent') {
+                navigate("/agent");
+                return;
+            } else if (user.role === 'admin' || user.role === 'developer') {
+                navigate("/dashboard");
+                return;
+            }
         } catch (err) {
             const errorMsg = err.response?.data?.detail || "Invalid credentials.";
             toast.error(errorMsg);
