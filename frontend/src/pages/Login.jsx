@@ -17,13 +17,16 @@ export default function SignIn() {
 
     useEffect(() => {
         if (user) { 
-            console.log("Logged in user:", user); 
-            if (user.role === 'agent') {
-                navigate("/agent");
+            console.table("Logged in user:", user); 
+            if (user.role === 'admin' || user.role === 'developer') {
+                navigate("/dashboard");
                 return;
             }
-            else if (user.role === 'admin' || user.role === 'developer') {
-                navigate("/dashboard");
+            if (user.user){
+                if (user.user.role === 'agent') {
+                    navigate("/agent");
+                    return;
+                }
             }
         }
     }, [user, navigate]); 

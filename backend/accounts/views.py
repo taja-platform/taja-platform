@@ -69,5 +69,14 @@ class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_serializer_class(self):
+        # Use AgentSerializer for agents, and UserSerializer for others.
+        if self.request.user.role == self.request.user.Role.AGENT:
+            return AgentSerializer 
+        return UserSerializer
+
     def get_object(self):
-        return self.request.user
+        user = self.request.user
+        if user.role == user.Role.AGENT:
+            return user.agent_profile
+        return user
