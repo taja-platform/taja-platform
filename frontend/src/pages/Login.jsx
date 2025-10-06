@@ -14,8 +14,10 @@ export default function SignIn() {
     const [passwordFocused, setPasswordFocused] = useState(false);
     const navigate = useNavigate();
 
+
     useEffect(() => {
-        if (user) {
+        if (user) { 
+            console.log("Logged in user:", user); 
             if (user.role === 'agent') {
                 navigate("/agent");
                 return;
@@ -24,7 +26,7 @@ export default function SignIn() {
                 navigate("/dashboard");
             }
         }
-    }, [user]);
+    }, [user, navigate]); 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -34,19 +36,13 @@ export default function SignIn() {
             await login(email, password);
             toast.success('Logged in successfully!');
             console.log("Logged in user:", user);
-            if (user.role === 'agent') {
-                navigate("/agent");
-                return;
-            } else if (user.role === 'admin' || user.role === 'developer') {
-                navigate("/dashboard");
-                return;
-            }
         } catch (err) {
             const errorMsg = err.response?.data?.detail || "Invalid credentials.";
             toast.error(errorMsg);
             console.error("Login error:", err);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     return (

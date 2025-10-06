@@ -1,19 +1,19 @@
-import { Routes, Route } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { Routes, Route } from "react-router-dom";
+import { Toaster } from "sonner";
 
 // Layouts
-import DashboardLayout from './components/layouts/DashboardLayout';
+import DashboardLayout from "./components/layouts/DashboardLayout";
 
 // Pages
-import LoginPage from './pages/Login';
-import HomePage from './pages/HomePage';
-import AgentsPage from './pages/AgentsPage';
-import ShopsPage from './pages/ShopsPage';
-import NotFoundPage from './pages/NotFoundPage';
-import AgentDashboard from './pages/AgentDashboard';
+import LoginPage from "./pages/Login";
+import HomePage from "./pages/HomePage";
+import AgentsPage from "./pages/AgentsPage";
+import ShopsPage from "./pages/ShopsPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import AgentDashboard from "./pages/AgentDashboard";
 
 // Auth
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
   return (
@@ -23,8 +23,6 @@ function App() {
       <Routes>
         {/* Public route */}
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/agent" element={<AgentDashboard />} />
-
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
@@ -33,6 +31,7 @@ function App() {
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/shops" element={<ShopsPage />} />
           </Route>
+          <Route path="/agent" element={<AgentDashboard />} />
         </Route>
 
         {/* 404 */}

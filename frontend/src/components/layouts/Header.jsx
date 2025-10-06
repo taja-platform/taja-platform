@@ -93,7 +93,7 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                 {user?.first_name || user?.username || "User"}
               </p>
               <p className="text-xs text-gray-500 capitalize">
-                {user?.role || "Admin"}
+                {user?.role || "Ahdmin"}
               </p>
             </div>
           </button>
