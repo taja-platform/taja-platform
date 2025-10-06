@@ -97,6 +97,12 @@ export default function ShopTable({ filters }) {
       );
     }
 
+        if (filters.agent !== 'all') {
+        // Since filters.agent is a string ID, we compare it against the new
+        // created_by_id field from the serializer.
+        currentFilteredShops = currentFilteredShops.filter(shop => String(shop.created_by_id) === filters.agent.agent_id);
+    }
+
     // 3. Filter by Date Created
     if (filters.dateRange && filters.dateRange !== "all") {
       const now = new Date();

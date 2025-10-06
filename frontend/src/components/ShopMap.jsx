@@ -1,4 +1,4 @@
-// src/components/ShopMap.jsx (Updated for Hover Tooltip)
+// src/components/ShopMap.jsx (Updated for Colored Markers)
 import React, { useEffect, useState, useMemo } from 'react';
 // ⭐ CRITICAL CHANGE: Imported Tooltip (for hover) instead of Popup
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'; 
@@ -17,6 +17,31 @@ L.Icon.Default.mergeOptions({
     iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
+
+// --- Custom Icon Definitions ---
+
+// Helper function to create a custom L.divIcon with a colored map pin SVG
+const createCustomIcon = (color) => {
+    return L.divIcon({
+        className: 'custom-map-pin',
+        html: `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path>
+                <circle cx="12" cy="10" r="3" fill="#FFFFFF" stroke="none"></circle>
+            </svg>
+        `,
+        iconSize: [24, 24], // SVG size
+        iconAnchor: [12, 24], // Point of the pin (center-bottom)
+        tooltipAnchor: [0, -20], // Adjust tooltip position
+    });
+};
+
+// Define the two static icons (Tailwind colors used for clarity)
+const ACTIVE_COLOR = '#10B981'; // Green-500 for Active
+const INACTIVE_COLOR = '#EF4444'; // Red-500 for Inactive
+
+const ACTIVE_ICON = createCustomIcon(ACTIVE_COLOR);
+const INACTIVE_ICON = createCustomIcon(INACTIVE_COLOR);
 
 // Component to dynamically adjust the map view based on filtered markers
 const SetBounds = ({ markers }) => {
@@ -42,7 +67,7 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
     const [rawShops, setRawShops] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- Data Fetching ---
+    // --- Data Fetching (omitted for brevity) ---
     const fetchShops = async () => {
         setLoading(true);
         try {
@@ -65,7 +90,7 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
         fetchShops();
     }, []);
 
-    // --- Filtering Logic (omitted for brevity, assume it's the same) ---
+    // --- Filtering Logic (omitted for brevity) ---
     const filteredShops = useMemo(() => {
         let filtered = rawShops;
 
@@ -133,6 +158,8 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
                 <Marker 
                     key={shop.id} 
                     position={[parseFloat(shop.latitude), parseFloat(shop.longitude)]}
+                    // ⭐ CRITICAL CHANGE: Use the custom icon based on shop status
+                    icon={shop.is_active ? ACTIVE_ICON : INACTIVE_ICON}
                 >
                     {/* ⭐ Implementation: Tooltip for hover effect */}
                     <Tooltip permanent={false} direction="top" offset={[0, -5]}>
@@ -155,3 +182,4 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
         </MapContainer>
     );
 }
+

@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage';
 import AgentsPage from './pages/AgentsPage';
 import ShopsPage from './pages/ShopsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AgentDashboard from './pages/AgentDashboard';
 
 // Auth
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -22,6 +23,8 @@ function App() {
       <Routes>
         {/* Public route */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/agent" element={<AgentDashboard />} />
+
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>

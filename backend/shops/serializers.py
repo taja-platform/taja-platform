@@ -14,6 +14,8 @@ class ShopSerializer(serializers.ModelSerializer):
     owner = serializers.StringRelatedField(read_only=True)   # show owner username
     created_by = serializers.StringRelatedField(read_only=True)  # show agent username
 
+    created_by_id = serializers.ReadOnlyField(source='created_by.id')
+    
     class Meta:
         model = Shop
         fields = [
@@ -29,9 +31,10 @@ class ShopSerializer(serializers.ModelSerializer):
             "state",
             "owner",
             "created_by",
+            "created_by_id",
             "photos",
         ]
-        read_only_fields = ["id", "date_created", "date_updated", "owner", "created_by"]
+        read_only_fields = ["id", "date_created", "date_updated", "owner", "created_by", "created_by_id"]
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context.get('request', None)
