@@ -58,7 +58,6 @@ export default function AgentsPage() {
     setIsEditModalOpen(true);
   };
 
-  // src/pages/AgentsPage.jsx
 
   const handleUpdateAgent = async (e) => {
     e.preventDefault();

@@ -1,7 +1,10 @@
-import React, { useContext, useState, useEffect, useCallback } from "react";
+import React, { useContext, useState, useEffect, useCallback, use } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "sonner";
+
+
+import api from "../api/api";
 
 const LayoutDashboard = (props) => (
   <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +239,7 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
           setIsLoading(false);
         },
         (error) => {
-          mockToast.error(
+          toast.error(
             "Could not get location. Ensure permissions are granted."
           );
           console.error("Geolocation error:", error);
@@ -245,7 +248,7 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-      mockToast.error("Geolocation is not supported by this browser.");
+      toast.error("Geolocation is not supported by this browser.");
       setIsLoading(false);
     }
   };
@@ -253,13 +256,13 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.latitude || !formData.longitude) {
-      mockToast.error("Please pin the shop's location.");
+      toast.error("Please pin the shop's location.");
       return;
     }
     setIsLoading(true);
     setTimeout(() => {
       onSave(formData);
-      mockToast.success(
+      toast.success(
         `Shop ${isEditing ? "updated" : "added"} successfully!`
       );
       setIsLoading(false);
@@ -407,7 +410,7 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
 
 // --- Profile Editor Component (UNCHANGED) ---
 
-const ProfileEditor = ({ profile, onSave }) => {
+const ProfileEditor = ({ profile, onSave, user}) => {
   const [formData, setFormData] = useState(profile);
   const [passwordData, setPasswordData] = useState({
     current: "",
@@ -427,26 +430,60 @@ const ProfileEditor = ({ profile, onSave }) => {
     setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      onSave(formData);
-      mockToast.success("Profile updated successfully!");
-      setIsLoading(false);
-    }, 800);
+
+     try {
+      // ✅ CORRECTED: Send a FLAT payload to match AgentSerializer
+      const payload = {
+        first_name: formData.first_name, // Flat field
+        last_name: formData.last_name, // Flat field
+        email: formData.email, // Flat field
+        phone_number: formData.phone_number,
+        address: formData.address,
+        state: formData.state,
+      };
+
+      await api.patch(`/accounts/me/`, payload);
+
+      toast.success("Details updated successfulljy!");
+    } catch (err) {
+      // ✅ ADD THIS LOGGING BLOCK
+      console.error("--- FULL API ERROR RESPONSE ---");
+      if (err.response) {
+        // This will print the exact validation error from Django
+        console.error("Data:", err.response.data);
+        console.error("Status:", err.response.status);
+        console.error("Headers:", err.response.headers);
+      } else if (err.request) {
+        console.error("Request:", err.request);
+      } else {
+        console.error("Error:", err.message);
+      }
+      console.error("-----------------------------");
+
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to update agent. Check console for details."
+      );
+    } finally {
+      setIsLoading(false)
+    }
   };
+
+  
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
     if (passwordData.new !== passwordData.confirm) {
-      mockToast.error("New password and confirmation do not match.");
+      toast.error("New password and confirmation do not match.");
       return;
     }
     setIsPasswordLoading(true);
     setTimeout(() => {
       // Simulated password update
-      mockToast.success("Password changed successfully!");
+      toast.success("Password changed successfully!");
       setPasswordData({ current: "", new: "", confirm: "" });
       setIsPasswordLoading(false);
     }, 1000);
@@ -470,19 +507,28 @@ const ProfileEditor = ({ profile, onSave }) => {
           <Input
             id="name"
             name="name"
-            label="Full Name"
+            label="First Name"
             type="text"
             value={formData.name}
             onChange={handleChange}
             required
           />
           <Input
+            id="last_name"
+            name="last_name"
+            label= "Last Name"
+            value={formData.last_name}
+            onChange={handleChange}
+            type="text"
+            required
+            />
+          <Input
             id="email"
             name="email"
             label="Email Address"
             type="email"
             value={formData.email}
-            onChange={handleChange}
+            readOnly
             required
           />
           <Input
@@ -753,15 +799,25 @@ const Textarea = ({ id, name, label, value, onChange }) => {
 const AgentDashboard = () => {
   const [view, setView] = useState("dashboard"); // 'dashboard', 'profile', 'shops'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [profile, setProfile] = useState(initialAgentProfile);
   const [shops, setShops] = useState(initialShops);
   const [shopModalOpen, setShopModalOpen] = useState(false);
   const [currentShop, setCurrentShop] = useState(null);
-
+  
   const { user, logout, updateUser, fetchUserProfile } =
-    useContext(AuthContext);
-
+  useContext(AuthContext);
+  
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [profile, setProfile] = useState(
+     {
+        agent_id: user?.agent_id || "AGT0042",
+        name: user?.user.first_name || "Alex Johnson" + user?.user.last_name || "",
+        last_name: user?.user.last_name || "",
+        email: user?.user.email || "",
+        phone_number: user?.phone_number || "555-0199",
+        address: user?.address || "123 Main St, Anytown, State 90210",
+        state: user?.state || "California",
+    }
+  );
 
   const handleLogout = () => {
     setShowConfirmModal(true);
@@ -821,7 +877,7 @@ const AgentDashboard = () => {
   const renderView = () => {
     switch (view) {
       case "profile":
-        return <ProfileEditor profile={profile} onSave={handleProfileSave} />;
+        return <ProfileEditor profile={profile} onSave={handleProfileSave} user={user} />;
       case "shops":
         return (
           <ShopsManager

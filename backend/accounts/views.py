@@ -74,6 +74,7 @@ class MeView(generics.RetrieveUpdateAPIView):
         if self.request.user.role == self.request.user.Role.AGENT:
             return AgentSerializer 
         return UserSerializer
+    
 
     def get_object(self):
         user = self.request.user
