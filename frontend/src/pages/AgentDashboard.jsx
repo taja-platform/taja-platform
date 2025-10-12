@@ -1,8 +1,7 @@
-import React, { useContext, useState, useEffect, useCallback, use } from "react";
+import React, { useContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "sonner";
-
 
 import api from "../api/api";
 
@@ -103,7 +102,6 @@ const Plus = (props) => (
   </svg>
 );
 
-
 const initialShops = [
   {
     id: 1,
@@ -156,6 +154,226 @@ const NavItem = ({ icon: Icon, title, isActive, onClick }) => (
   </a>
 );
 
+// --- Form Element  ---
+
+// --- Data Map for State and LGA ---
+const STATE_LGA_MAP = {
+  Lagos: [
+    "Ikeja",
+    "Surulere",
+    "Eti-Osa",
+    "Badagry",
+    "Epe",
+    "Kosofe",
+    "Alimosho",
+    "Oshodi-Isolo",
+    "Agege",
+    "Amuwo-Odofin",
+  ],
+  Abuja: [
+    "Abaji",
+    "Bwari",
+    "Gwagwalada",
+    "Kuje",
+    "Kwali",
+    "Municipal Area Council",
+  ],
+  Kano: [
+    "Dala",
+    "Fagge",
+    "Gwale",
+    "Kumbotso",
+    "Nassarawa",
+    "Tarauni",
+    "Tofa",
+    "Kano Municipal",
+  ],
+  Oyo: [
+    "Ibadan North",
+    "Ibadan South-West",
+    "Ibadan North-East",
+    "Ogbomosho North",
+    "Oyo East",
+    "Oyo West",
+    "Saki East",
+    "Saki West",
+    "Atiba",
+    "Afijio",
+  ],
+};
+
+// Extracting a sorted list of States for the first dropdown
+const STATES = Object.keys(STATE_LGA_MAP).sort();
+
+// --- Select Component (NEW) ---
+
+const Select = ({
+  id,
+  name,
+  label,
+  value,
+  onChange,
+  options,
+  required = false,
+  disabled = false,
+}) => {
+  const [focused, setFocused] = useState(false);
+
+  // Determine if the floating label effect should be active
+  const isFloating = focused || value;
+
+  return (
+    <div className="relative">
+      <label
+        htmlFor={id}
+        className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+          isFloating
+            ? "top-2 text-xs text-gray-700 font-medium"
+            : "top-4 text-gray-500"
+        }`}
+      >
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        id={id}
+        name={name}
+        value={value || ""} // Use empty string for controlled component if value is null
+        onChange={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        disabled={disabled}
+        className={`w-full h-14 px-4 pt-6 pb-2 bg-gray-50 border transition-all duration-200 rounded-lg text-gray-900 
+                    ${
+                      disabled
+                        ? "bg-gray-100 cursor-not-allowed"
+                        : "border-gray-300 hover:border-gray-400"
+                    }
+                    focus:outline-none focus:ring-2 focus:ring-gray-900/10 appearance-none`}
+        required={required}
+      >
+        {/* Placeholder/Initial Option */}
+        <option value="" disabled>
+          
+        </option>
+
+        {/* Options from the provided array */}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      {/* Custom chevron icon for select */}
+      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pt-3 pointer-events-none">
+        <svg
+          className="w-5 h-5 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+const Input = ({
+  id,
+  name,
+  label,
+  type = "text",
+  value,
+  onChange,
+  readOnly = false,
+  required = false,
+  step,
+}) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className="relative">
+      <div
+        className={`relative transition-all duration-200 ${
+          focused || value ? "transform -translate-y-2" : ""
+        }`}
+      >
+        <label
+          htmlFor={id}
+          className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+            focused || value
+              ? "top-2 text-xs text-gray-700 font-medium"
+              : "top-4 text-gray-500"
+          }`}
+        >
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <input
+          id={id}
+          name={name}
+          type={type}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          step={step}
+          className={`w-full h-14 px-4 pt-6 pb-2 bg-gray-50 border transition-all duration-200 rounded-lg text-gray-900 placeholder-transparent ${
+            readOnly
+              ? "bg-gray-100 cursor-not-allowed"
+              : focused
+              ? "border-gray-900 bg-white shadow-sm"
+              : "border-gray-300 hover:border-gray-400"
+          } focus:outline-none focus:ring-2 focus:ring-gray-900/10`}
+          readOnly={readOnly}
+          required={required}
+        />
+      </div>
+    </div>
+  );
+};
+
+const Textarea = ({ id, name, label, value, onChange }) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className="relative">
+      <div
+        className={`relative transition-all duration-200 ${
+          focused || value ? "transform -translate-y-2" : ""
+        }`}
+      >
+        <label
+          htmlFor={id}
+          className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+            focused || value
+              ? "top-2 text-xs text-gray-700 font-medium"
+              : "top-4 text-gray-500"
+          }`}
+        >
+          {label}
+        </label>
+        <textarea
+          id={id}
+          name={name}
+          rows="3"
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className={`w-full px-4 pt-6 pb-2 bg-gray-50 border transition-all duration-200 rounded-lg text-gray-900 placeholder-transparent ${
+            focused
+              ? "border-gray-900 bg-white shadow-sm"
+              : "border-gray-300 hover:border-gray-400"
+          } focus:outline-none focus:ring-2 focus:ring-gray-900/10`}
+        />
+      </div>
+    </div>
+  );
+};
+
 // --- Shop Management Component ---
 
 const ShopCard = ({ shop, onEdit }) => (
@@ -189,22 +407,40 @@ const ShopCard = ({ shop, onEdit }) => (
 );
 
 const ShopFormModal = ({ shop, onClose, onSave }) => {
-  const isEditing = !!shop.id;
+  // FIX: Using optional chaining for a clean null check
+  const isEditing = !!shop?.id;
+
   const [formData, setFormData] = useState(
     shop || {
       name: "",
       phone_number: "",
       address: "",
+      // NEW: Add local_government_area to initial state
       state: "",
+      local_government_area: "",
       latitude: null,
       longitude: null,
     }
   );
   const [isLoading, setIsLoading] = useState(false);
 
+  // Get LGAs based on the currently selected state
+  const lgaOptions = STATE_LGA_MAP[formData.state] || [];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => {
+      // Logic to reset LGA if the State is changed
+      if (name === "state") {
+        return {
+          ...prev,
+          state: value,
+          local_government_area: "", // Reset LGA when state changes
+        };
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleLocationPin = (lat, lng) => {
@@ -245,16 +481,24 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Add validation check for State and LGA
+    if (!formData.state) {
+      toast.error("Please select a State/Region.");
+      return;
+    }
+    if (!formData.local_government_area) {
+      toast.error("Please select a Local Government Area.");
+      return;
+    }
     if (!formData.latitude || !formData.longitude) {
       toast.error("Please pin the shop's location.");
       return;
     }
+
     setIsLoading(true);
     setTimeout(() => {
       onSave(formData);
-      toast.success(
-        `Shop ${isEditing ? "updated" : "added"} successfully!`
-      );
+      toast.success(`Shop ${isEditing ? "updated" : "added"} successfully!`);
       setIsLoading(false);
     }, 1000);
   };
@@ -302,17 +546,37 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
             onChange={handleChange}
             required
           />
-          <Input
+
+          {/* NEW: State Select Field */}
+          <Select
             id="state"
             name="state"
             label="State/Region"
-            type="text"
             value={formData.state}
             onChange={handleChange}
+            options={STATES} // Use the sorted list of states
             required
           />
 
+          {/* NEW: Local Government Select Field (Dependent) */}
+          <Select
+            id="local_government_area"
+            name="local_government_area"
+            label="Local Government Area"
+            value={formData.local_government_area}
+            onChange={handleChange}
+            options={lgaOptions} // Options are filtered based on State
+            required
+            // Disable if no state is selected
+            disabled={!formData.state || lgaOptions.length === 0}
+          />
+
           {/* Location Pinning Section */}
+          {/* ... (rest of the component is unchanged) */}
+          <div className="pt-3 border-t border-gray-100">
+            {/* ... (The rest of the Location Pinning section) */}
+          </div>
+
           <div className="pt-3 border-t border-gray-100">
             <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
               <MapPin className="w-5 h-5 mr-2 text-gray-900" /> Location
@@ -400,7 +664,7 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
 
 // --- Profile Editor Component (UNCHANGED) ---
 
-const ProfileEditor = ({ profile, onSave, user}) => {
+const ProfileEditor = ({ profile, onSave, user, updateUser }) => {
   const [formData, setFormData] = useState(profile);
   const [passwordData, setPasswordData] = useState({
     current: "",
@@ -424,7 +688,7 @@ const ProfileEditor = ({ profile, onSave, user}) => {
     e.preventDefault();
     setIsLoading(true);
 
-     try {
+    try {
       // ✅ CORRECTED: Send a FLAT payload to match AgentSerializer
       const payload = {
         first_name: formData.first_name, // Flat field
@@ -435,9 +699,11 @@ const ProfileEditor = ({ profile, onSave, user}) => {
         state: formData.state,
       };
 
-      await api.patch(`/accounts/me/`, payload);
+      const res = await api.patch(`/accounts/me/`, payload);
 
       toast.success("Details updated successfulljy!");
+
+      updateUser(res.data); // Update context with new user data
     } catch (err) {
       // ✅ ADD THIS LOGGING BLOCK
       console.error("--- FULL API ERROR RESPONSE ---");
@@ -458,11 +724,9 @@ const ProfileEditor = ({ profile, onSave, user}) => {
           "Failed to update agent. Check console for details."
       );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   };
-
-  
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -474,16 +738,13 @@ const ProfileEditor = ({ profile, onSave, user}) => {
 
     try {
       const payload = {
-        password : passwordData.new,
-        current_password: passwordData.current 
-    }
+        password: passwordData.new,
+        current_password: passwordData.current,
+      };
 
-    const response = await api.patch('/accounts/me/', payload)
-    toast.success("Password changed successfully!");
-    setPasswordData({ current: "", new: "", confirm: "" });
-
-
-
+      const response = await api.patch("/accounts/me/", payload);
+      toast.success("Password changed successfully!");
+      setPasswordData({ current: "", new: "", confirm: "" });
     } catch (err) {
       console.error("--- FULL API ERROR RESPONSE ---");
       if (err.response) {
@@ -501,7 +762,7 @@ const ProfileEditor = ({ profile, onSave, user}) => {
           "Failed to change password. Check console for details."
       );
     } finally {
-      setIsPasswordLoading(false)
+      setIsPasswordLoading(false);
       setFormData({ current: "", new: "", confirm: "" });
     }
   };
@@ -533,12 +794,12 @@ const ProfileEditor = ({ profile, onSave, user}) => {
           <Input
             id="last_name"
             name="last_name"
-            label= "Last Name"
+            label="Last Name"
             value={formData.last_name}
             onChange={handleChange}
             type="text"
             required
-            />
+          />
           <Input
             id="email"
             name="email"
@@ -718,99 +979,6 @@ const DashboardView = ({ totalShops, shopsToday }) => {
   );
 };
 
-// --- Form Element Components (UNCHANGED) ---
-
-const Input = ({
-  id,
-  name,
-  label,
-  type = "text",
-  value,
-  onChange,
-  readOnly = false,
-  required = false,
-  step,
-}) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="relative">
-      <div
-        className={`relative transition-all duration-200 ${
-          focused || value ? "transform -translate-y-2" : ""
-        }`}
-      >
-        <label
-          htmlFor={id}
-          className={`absolute left-4 transition-all duration-200 pointer-events-none ${
-            focused || value
-              ? "top-2 text-xs text-gray-700 font-medium"
-              : "top-4 text-gray-500"
-          }`}
-        >
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-        <input
-          id={id}
-          name={name}
-          type={type}
-          value={value}
-          onChange={onChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          step={step}
-          className={`w-full h-14 px-4 pt-6 pb-2 bg-gray-50 border transition-all duration-200 rounded-lg text-gray-900 placeholder-transparent ${
-            readOnly
-              ? "bg-gray-100 cursor-not-allowed"
-              : focused
-              ? "border-gray-900 bg-white shadow-sm"
-              : "border-gray-300 hover:border-gray-400"
-          } focus:outline-none focus:ring-2 focus:ring-gray-900/10`}
-          readOnly={readOnly}
-          required={required}
-        />
-      </div>
-    </div>
-  );
-};
-
-const Textarea = ({ id, name, label, value, onChange }) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="relative">
-      <div
-        className={`relative transition-all duration-200 ${
-          focused || value ? "transform -translate-y-2" : ""
-        }`}
-      >
-        <label
-          htmlFor={id}
-          className={`absolute left-4 transition-all duration-200 pointer-events-none ${
-            focused || value
-              ? "top-2 text-xs text-gray-700 font-medium"
-              : "top-4 text-gray-500"
-          }`}
-        >
-          {label}
-        </label>
-        <textarea
-          id={id}
-          name={name}
-          rows="3"
-          value={value}
-          onChange={onChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className={`w-full px-4 pt-6 pb-2 bg-gray-50 border transition-all duration-200 rounded-lg text-gray-900 placeholder-transparent ${
-            focused
-              ? "border-gray-900 bg-white shadow-sm"
-              : "border-gray-300 hover:border-gray-400"
-          } focus:outline-none focus:ring-2 focus:ring-gray-900/10`}
-        />
-      </div>
-    </div>
-  );
-};
-
 // --- Main AgentDashboard Component (UPDATED) ---
 
 const AgentDashboard = () => {
@@ -819,22 +987,34 @@ const AgentDashboard = () => {
   const [shops, setShops] = useState(initialShops);
   const [shopModalOpen, setShopModalOpen] = useState(false);
   const [currentShop, setCurrentShop] = useState(null);
-  
+
   const { user, logout, updateUser, fetchUserProfile } =
-  useContext(AuthContext);
-  
+    useContext(AuthContext);
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [profile, setProfile] = useState(
-     {
+  const [profile, setProfile] = useState({
+    agent_id: user?.agent_id || "AGT0042",
+    first_name: user?.user.first_name || "g",
+    last_name: user?.user.last_name || "",
+    email: user?.user.email || "",
+    phone_number: user?.phone_number || "555-0199",
+    address: user?.address || "123 Main St, Anytown, State 90210",
+    state: user?.state || "California",
+  });
+
+  useEffect(() => {
+    if (user) {
+      setProfile({
         agent_id: user?.agent_id || "AGT0042",
-        first_name: user?.user.first_name || "g",
-        last_name: user?.user.last_name || "",
-        email: user?.user.email || "",
+        first_name: user?.user?.first_name || "g",
+        last_name: user?.user?.last_name || "",
+        email: user?.user?.email || "",
         phone_number: user?.phone_number || "555-0199",
         address: user?.address || "123 Main St, Anytown, State 90210",
         state: user?.state || "California",
+      });
     }
-  );
+  }, [user]); // runs whenever 'user' changes
 
   const handleLogout = () => {
     setShowConfirmModal(true);
@@ -849,8 +1029,6 @@ const AgentDashboard = () => {
   const shopsTodayCount = shops.filter(
     (shop) => shop.date_created === new Date().toISOString().split("T")[0]
   ).length;
-
-
 
   const handleProfileSave = (newProfileData) => {
     setProfile(newProfileData);
@@ -894,7 +1072,14 @@ const AgentDashboard = () => {
   const renderView = () => {
     switch (view) {
       case "profile":
-        return <ProfileEditor profile={profile} onSave={handleProfileSave} user={user} />;
+        return (
+          <ProfileEditor
+            profile={profile}
+            onSave={handleProfileSave}
+            user={user}
+            updateUser={updateUser}
+          />
+        );
       case "shops":
         return (
           <ShopsManager
@@ -989,7 +1174,6 @@ const AgentDashboard = () => {
                     ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
                     `}
         >
-
           <div className="p-6 h-full flex flex-col">
             {/* Logo/Title */}
             <div className="text-white text-2xl font-extrabold mb-8 flex items-center space-x-2">
@@ -1019,7 +1203,10 @@ const AgentDashboard = () => {
               <div className="flex items-center space-x-3 p-3 text-white">
                 <User className="w-6 h-6 text-green-400" />
                 <div>
-                  <p className="text-sm font-semibold">{user?.user?.first_name || user?.username || "User"} {user?.user?.last_name || user?.username || "User"}</p>
+                  <p className="text-sm font-semibold">
+                    {user?.user?.first_name || user?.username || "User"}{" "}
+                    {user?.user?.last_name || user?.username || "User"}
+                  </p>
                   <p className="text-xs text-gray-400">{user.agent_id}</p>
                 </div>
               </div>
