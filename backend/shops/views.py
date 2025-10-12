@@ -1,5 +1,5 @@
 # shops/views.py
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, views
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, BasePermission
 from .models import Shop
@@ -81,3 +81,17 @@ class ShopViewSet(viewsets.ModelViewSet):
         def has_object_permission(self, request, view, obj):
             # Write permissions are only allowed to the agent who created the shop.
             return obj.created_by == request.user
+        
+
+
+class MyShopsView(views.APIView):
+    """
+    Retrieve all shops created by the authenticated agent.
+    """
+    permission_classes = [IsAuthenticated, IsAgent]
+
+    def get(self, request, *args, **kwargs):
+        # Filter shops where created_by is the authenticated agent
+        shops = Shop.objects.filter(created_by=request.user)
+        serializer = ShopSerializer(shops, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
