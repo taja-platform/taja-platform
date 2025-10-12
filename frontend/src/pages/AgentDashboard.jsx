@@ -103,16 +103,6 @@ const Plus = (props) => (
   </svg>
 );
 
-// --- Mock Data and Utilities (UNCHANGED) ---
-
-const initialAgentProfile = {
-  agent_id: "AGT0042",
-  name: "Alex Johnson",
-  email: "alex.johnson@example.com",
-  phone_number: "555-0199",
-  address: "123 Main St, Anytown, State 90210",
-  state: "California",
-};
 
 const initialShops = [
   {
@@ -166,7 +156,7 @@ const NavItem = ({ icon: Icon, title, isActive, onClick }) => (
   </a>
 );
 
-// --- Shop Management Components (UNCHANGED) ---
+// --- Shop Management Component ---
 
 const ShopCard = ({ shop, onEdit }) => (
   <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 transition-all duration-200 hover:shadow-xl hover:border-gray-200">
@@ -474,19 +464,46 @@ const ProfileEditor = ({ profile, onSave, user}) => {
 
   
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwordData.new !== passwordData.confirm) {
       toast.error("New password and confirmation do not match.");
       return;
     }
     setIsPasswordLoading(true);
-    setTimeout(() => {
-      // Simulated password update
-      toast.success("Password changed successfully!");
-      setPasswordData({ current: "", new: "", confirm: "" });
-      setIsPasswordLoading(false);
-    }, 1000);
+
+    try {
+      const payload = {
+        password : passwordData.new,
+        current_password: passwordData.current 
+    }
+
+    const response = await api.patch('/accounts/me/', payload)
+    toast.success("Password changed successfully!");
+    setPasswordData({ current: "", new: "", confirm: "" });
+
+
+
+    } catch (err) {
+      console.error("--- FULL API ERROR RESPONSE ---");
+      if (err.response) {
+        console.error("Data:", err.response.data);
+        console.error("Status:", err.response.status);
+        console.error("Headers:", err.response.headers);
+      } else if (err.request) {
+        console.error("Request:", err.request);
+      } else {
+        console.error("Error:", err.message);
+      }
+      console.error("-----------------------------");
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to change password. Check console for details."
+      );
+    } finally {
+      setIsPasswordLoading(false)
+      setFormData({ current: "", new: "", confirm: "" });
+    }
   };
 
   return (
@@ -505,11 +522,11 @@ const ProfileEditor = ({ profile, onSave, user}) => {
             readOnly
           />
           <Input
-            id="name"
-            name="name"
+            id="firsrt_name"
+            name="first_name"
             label="First Name"
             type="text"
-            value={formData.name}
+            value={formData.first_name}
             onChange={handleChange}
             required
           />
@@ -810,7 +827,7 @@ const AgentDashboard = () => {
   const [profile, setProfile] = useState(
      {
         agent_id: user?.agent_id || "AGT0042",
-        name: user?.user.first_name || "Alex Johnson" + user?.user.last_name || "",
+        first_name: user?.user.first_name || "g",
         last_name: user?.user.last_name || "",
         email: user?.user.email || "",
         phone_number: user?.phone_number || "555-0199",
@@ -967,11 +984,12 @@ const AgentDashboard = () => {
 
         {/* Sidebar (Desktop) / Mobile Drawer */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out 
-                    md:translate-x-0 md:static md:flex-shrink-0 md:h-auto
+          className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out h-screen overflow-y-hidden 
+                    md:translate-x-0 md:flex-shrink-0
                     ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
                     `}
         >
+
           <div className="p-6 h-full flex flex-col">
             {/* Logo/Title */}
             <div className="text-white text-2xl font-extrabold mb-8 flex items-center space-x-2">
@@ -1001,7 +1019,7 @@ const AgentDashboard = () => {
               <div className="flex items-center space-x-3 p-3 text-white">
                 <User className="w-6 h-6 text-green-400" />
                 <div>
-                  <p className="text-sm font-semibold">{user?.first_name || user?.username || "User"} {user?.last_name || user?.username || "User"}</p>
+                  <p className="text-sm font-semibold">{user?.user?.first_name || user?.username || "User"} {user?.user?.last_name || user?.username || "User"}</p>
                   <p className="text-xs text-gray-400">{user.agent_id}</p>
                 </div>
               </div>
@@ -1018,7 +1036,7 @@ const AgentDashboard = () => {
 
         {/* Main Content Area */}
         <main
-          className={`flex-grow p-4 md:p-8 pt-20 md:pt-8 transition-all duration-300`}
+          className={`flex-grow p-4 md:p-8 pt-20 md:pt-8 md:ml-64 transition-all duration-300`}
         >
           <div className="max-w-7xl mx-auto py-4">{renderView()}</div>
         </main>

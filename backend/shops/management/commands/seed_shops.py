@@ -4,122 +4,115 @@ from datetime import timedelta
 from faker import Faker
 import random
 from shops.models import Shop
-# CRITICAL: Import the Agent model from accounts
-from accounts.models import Agent 
+from accounts.models import Agent
 
 fake = Faker()
 
-# Define realistic bounding boxes (lat_min, lat_max, lon_min, lon_max)
+# --- State coordinates for approximate bounding boxes ---
 STATE_COORDS = {
     "Lagos": (6.400, 6.650, 3.200, 3.550),
     "Abuja": (8.900, 9.200, 7.200, 7.600),
     "Kano": (11.900, 12.100, 8.400, 8.700),
-    "Rivers": (4.700, 5.100, 6.900, 7.300),
     "Oyo": (7.300, 7.600, 3.800, 4.100),
-    "Kaduna": (10.400, 10.700, 7.300, 7.600),
-    "Enugu": (6.300, 6.600, 7.300, 7.600),
-    "Plateau": (9.800, 10.000, 8.800, 9.200),
-    "Delta": (5.200, 5.700, 5.600, 6.000),
-    "Imo": (5.400, 5.600, 6.900, 7.200),
 }
 
-# Define date variation options (in days)
-DATE_OPTIONS = [
-    timedelta(days=90),
-    timedelta(days=30),
-    timedelta(days=7),
-]
+# --- Local Governments (subset, realistic examples) ---
+STATE_LGAS = {
+    "Lagos": [
+        "Ikeja", "Surulere", "Eti-Osa", "Badagry", "Epe",
+        "Kosofe", "Alimosho", "Oshodi-Isolo", "Agege", "Amuwo-Odofin"
+    ],
+    "Abuja": [
+        "Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal Area Council"
+    ],
+    "Kano": [
+        "Dala", "Fagge", "Gwale", "Kumbotso", "Nassarawa",
+        "Tarauni", "Tofa", "Kano Municipal"
+    ],
+    "Oyo": [
+        "Ibadan North", "Ibadan South-West", "Ibadan North-East", "Ogbomosho North",
+        "Oyo East", "Oyo West", "Saki East", "Saki West", "Atiba", "Afijio"
+    ],
+}
+
+# --- Random date choices for "created_at" variability ---
+DATE_OFFSETS = [timedelta(days=7), timedelta(days=30), timedelta(days=90)]
 NOW = timezone.now()
 
+# --- Descriptive examples for shops ---
+SHOP_DESCRIPTIONS = [
+    "A local provisions shop selling rice, noodles, beverages, and canned goods.",
+    "A small neighborhood supermarket offering fresh produce and daily essentials.",
+    "A roadside food stand serving hot local dishes and snacks.",
+    "A busy restaurant known for jollof rice, soups, and grilled meat.",
+    "A mini mart where residents buy cooking ingredients and household supplies.",
+    "A popular bakery making fresh bread, pastries, and meat pies every morning.",
+    "A bustling market stall selling grains, oil, spices, and vegetables.",
+    "A family-run eatery offering breakfast and lunch to workers nearby.",
+    "A cozy canteen famous for affordable local meals and soft drinks.",
+    "A grocery and food supply store providing both wholesale and retail services.",
+    "A corner food mart offering snacks, drinks, and quick meal options.",
+    "A local restaurant specializing in traditional Nigerian dishes.",
+    "A provision store where customers buy everything from milk to seasoning cubes.",
+    "A small supermarket that caters to both walk-in customers and local deliveries.",
+    "A breakfast spot serving tea, bread, and akara to early morning commuters.",
+]
 
 class Command(BaseCommand):
-    help = 'Seeds the database with random Shop data, linked to Agents, with variable dates and status.'
+    help = "Seeds the database with 5 shops per Local Government in each state."
 
     def handle(self, *args, **options):
-        self.stdout.write("🔥 Starting database seeding for Shops...")
+        self.stdout.write("🌍 Starting scaled seeding of Shops (by LGA)...")
 
-        # 1. Fetch Agents
         agents = list(Agent.objects.all())
         if not agents:
-            self.stdout.write(self.style.ERROR("🚨 No Agents found! Please run a command to create agents first."))
+            self.stdout.write(self.style.ERROR("🚨 No Agents found! Please create some agents first."))
             return
 
-        # 2. Setup Agent Assignment List and Counters
-        MIN_SHOPS_PER_AGENT = 10
-        INACTIVE_SHOPS_PER_AGENT = 3
-        
-        # Ensures every agent is present at least 10 times (to meet the minimum requirement)
-        agent_assignment_list = agents * MIN_SHOPS_PER_AGENT 
-
-        # Add extra shops randomly to distribute the remaining shops evenly
-        # Target an additional 10 shops per state, which means 10 * 10 = 100 extra shops
-        num_extra_shops = len(STATE_COORDS) * 10
-        agent_assignment_list.extend(random.choices(agents, k=num_extra_shops))
-        
-        # Shuffle the list so the shops are assigned randomly to agents
-        random.shuffle(agent_assignment_list)
-        
-        self.stdout.write(f"👥 Found {len(agents)} agents. Creating a total of {len(agent_assignment_list)} shops...")
-
         total_created = 0
-        agent_shop_counts = {agent.id: 0 for agent in agents}
-        # Counter to track how many inactive shops have been assigned to each agent
-        agents_with_inactive_count = {agent.id: 0 for agent in agents}
 
+        self.stdout.write(f"👥 Found {len(agents)} agents.")
 
-        # 3. Iterate through the prepared list of agents
-        for agent in agent_assignment_list:
-            
-            # 4. Determine Shop Location RANDOMLY
-            state = random.choice(list(STATE_COORDS.keys()))
+        # Loop through each state and its LGAs
+        for state, lgas in STATE_LGAS.items():
             lat_min, lat_max, lon_min, lon_max = STATE_COORDS[state]
-            
-            # 5. Determine Shop Details
-            name = f"{fake.first_name()} {random.choice(['Stores', 'Enterprises', 'Supermart', 'Boutique', 'Electronics', 'Bakery'])}"
-            phone_number = f"+234{random.randint(7010000000, 9099999999)}"
-            address = f"{random.randint(1, 200)} {random.choice(['Market Rd', 'Main St', 'Broadway'])}, {state}"
-            latitude = round(random.uniform(lat_min, lat_max), 6)
-            longitude = round(random.uniform(lon_min, lon_max), 6)
+            self.stdout.write(self.style.MIGRATE_HEADING(f"\n🏙️ Seeding shops for {state}..."))
 
-            # 6. Set date_created randomly
-            time_ago = random.choice(DATE_OPTIONS)
-            created_date = NOW - time_ago
+            for lga in lgas:
+                no_of_shops = random.randint(5, 9)
+                self.stdout.write(f"  📍 Creating {no_of_shops} shops in {lga}, {state}...")
+                for i in range(no_of_shops):  # 5-9 shops per LGA
+                    agent = random.choice(agents)
+                    name = f"{fake.first_name()} {random.choice([ 'Provisions', 'Supermarket', 'Mini Mart', 'Restaurant', 'Eatery', 'Food Corner', 'Bakery', 'Kitchen', 'Food Hub', 'Canteen', 'Market', 'Food Supply' ])}"                    
+                    phone_number = f"+234{random.randint(7010000000, 9099999999)}"
+                    address = f"{random.randint(1, 200)} {random.choice(['Market Rd', 'Main St', 'Broadway', 'Kingsway', 'Unity Ave'])}, {lga}, {state}"
+                    latitude = round(random.uniform(lat_min, lat_max), 6)
+                    longitude = round(random.uniform(lon_min, lon_max), 6)
+                    description = random.choice(SHOP_DESCRIPTIONS)
+                    created_date = NOW - random.choice(DATE_OFFSETS)
 
-            # 7. Set is_active: Mark as inactive if the agent hasn't reached their quota
-            is_active = True
-            if agents_with_inactive_count[agent.id] < INACTIVE_SHOPS_PER_AGENT:
-                 # ⭐ Mark the shop as inactive and increment the agent's inactive count
-                 is_active = False
-                 agents_with_inactive_count[agent.id] += 1
-            
-            
-            try:
-                Shop.objects.create(
-                    name=name,
-                    phone_number=phone_number,
-                    address=address,
-                    latitude=latitude,
-                    longitude=longitude,
-                    state=state,         # Matches your Shop model field
-                    owner=None,          # ✅ Requested: Owner remains None
-                    created_by=agent,    # ✅ Assigned to the current agent
-                    is_active=is_active, # ✅ Set activity status (3 per agent are inactive)
-                    date_created=created_date, # ✅ Set varying creation date
-                )
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"❌ Error creating shop: {e.__class__.__name__} - {e}"))
-                raise
+                    try:
+                        Shop.objects.create(
+                            name=name,
+                            phone_number=phone_number,
+                            address=address,
+                            latitude=latitude,
+                            longitude=longitude,
+                            state=state,
+                            local_government_area=lga,
+                            description=description,
+                            owner=None,
+                            created_by=agent,
+                            is_active=random.choice([True, True, True, False]),  # 75% active
+                            date_created=created_date,
+                        )
+                        total_created += 1
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(
+                            f"❌ Error creating shop in {lga}, {state}: {e.__class__.__name__} - {e}"
+                        ))
+                        continue
 
-            total_created += 1
-            agent_shop_counts[agent.id] += 1
-        
-        # 8. Final Summary
-        self.stdout.write(self.style.SUCCESS(f"\n🎉 Successfully completed seeding. Total shops created: {total_created}"))
-        for agent_id, count in agent_shop_counts.items():
-            try:
-                agent = Agent.objects.get(id=agent_id)
-                agent_name = agent.get_full_name() or agent.email
-            except Agent.DoesNotExist:
-                 agent_name = f"Unknown Agent ({agent_id})"
+                self.stdout.write(self.style.SUCCESS(f"✅ Created {no_of_shops} shops in {lga}, {state}"))
 
-            self.stdout.write(f"  - {agent_name}: {count} shops (Inactive: {agents_with_inactive_count[agent_id]})")
+        self.stdout.write(self.style.SUCCESS(f"\n🎉 Done! Created {total_created} shops across {len(STATE_LGAS)} states."))

@@ -49,70 +49,94 @@ class AgentCreateSerializer(serializers.ModelSerializer):
         )
         return user
 
-
 class AgentSerializer(serializers.ModelSerializer):
     """
-    Serializer for UPDATING an agent. It "flattens" user fields
-    to handle validation correctly.
+    Serializer for UPDATING an agent. User fields are virtual (flat input),
+    mapped manually in update() to avoid read-only nesting issues.
     """
     # 'user' is for reading the nested object in the response. It's not used for input.
     user = UserSerializer(read_only=True)
 
-    # These fields are for WRITING data to the nested user model.
-    # 'source' tells DRF to get/set the value on the 'user' related object.
-    first_name = serializers.CharField(source='user.first_name', required=False)
-    last_name = serializers.CharField(source='user.last_name', required=False)
-    email = serializers.EmailField(source='user.email', required=False)
-    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    # Virtual fields for User (flat input—no source= anymore)
+    first_name = serializers.CharField(required=False, allow_blank=True)  # Validates as string
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False)  # Validates as email
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, style={'input_type': 'password'})
+    current_password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})  # NEW: For verification
 
     class Meta:
         model = AgentProfile
         fields = [
             "agent_id",
-            "user", # for reading
-            # for writing:
+            "user",  # for reading
+            # Virtual user fields (flat input):
             "first_name",
             "last_name",
             "email",
             "password",
+            "current_password",  # NEW
             # AgentProfile's own fields:
             "phone_number",
             "address",
             "state",
             "is_active",
         ]
-    
-    # This custom validation method for the 'email' field is now instance-aware.
+        read_only_fields = ["agent_id"]  # Removed is_active as read_only for simplicity; adjust if needed
+
+    # Custom validation for email (now on the virtual field)
     def validate_email(self, value):
-        # On updates, self.instance refers to the AgentProfile being updated.
-        if self.instance:
-            user = self.instance.user
-            # Check if any OTHER user has this email.
-            if User.objects.filter(email=value).exclude(pk=user.pk).exists():
-                raise serializers.ValidationError("A user with this email already exists.")
+        if value:  # Only if provided
+            if self.instance:
+                user = self.instance.user
+                if User.objects.filter(email=value).exclude(pk=user.pk).exists():
+                    raise serializers.ValidationError("A user with this email already exists.")
         return value
 
+    # NEW: Whole-object validation for password change
+    def validate(self, data):
+        """
+        Verify current_password if password (new) is provided.
+        """
+        if 'password' in data:
+            if 'current_password' not in data:
+                raise serializers.ValidationError({"current_password": "This field is required when changing password."})
+            # Verify against the actual user's stored password
+            if not self.instance.user.check_password(data['current_password']):
+                raise serializers.ValidationError({"current_password": "Incorrect current password."})
+            # Optional: Add strength checks for new password (e.g., length)
+            if len(data['password']) < 8:
+                raise serializers.ValidationError({"password": "New password must be at least 8 characters."})
+        # If current_password sent without new password, ignore or error (your choice)
+        elif 'current_password' in data:
+            raise serializers.ValidationError({"current_password": "This field is only needed when changing password."})
+        return data
+
     def update(self, instance, validated_data):
-        # `instance` is the AgentProfile object.
-        # `validated_data` contains all valid incoming data.
+        # Manually extract user fields from validated_data (they're now flat here!)
+        user_data = {
+            'first_name': validated_data.pop('first_name', None),
+            'last_name': validated_data.pop('last_name', None),
+            'email': validated_data.pop('email', None),
+        }
+        password = validated_data.pop('password', None)  # New password (if any)
+        current_password = validated_data.pop('current_password', None)  # Already verified; pop to remove from profile update
 
-        # 1. Isolate User Data
-        # Because of `source='user. ...'`, DRF groups these fields into a nested 'user' dict.
-        user_data = validated_data.pop('user', {})
-
-        # 2. Update the User Model
-        # Get the actual User object from the AgentProfile instance.
+        # Update the related user object
         user_instance = instance.user
-        
-        # Loop through the user-specific data and update the user_instance
+        updates_made = False
         for attr, value in user_data.items():
-            setattr(user_instance, attr, value)
-        
-        # Save the changes to the User model in the database.
-        user_instance.save()
+            if value is not None:  # Only set if provided (partial update)
+                setattr(user_instance, attr, value)
+                updates_made = True
 
-        # 3. Update the AgentProfile Model
-        # The `user_data` has been removed from `validated_data`.
-        # What remains are the fields for AgentProfile (e.g., phone_number).
-        # We call the original, default `update` method to handle these.
+        # Set and hash new password if provided (validation already checked current)
+        if password:
+            user_instance.set_password(password)
+            updates_made = True
+
+        # Save User ONLY if we have changes (optimization)
+        if updates_made:
+            user_instance.save()  # Applies updates to User
+
+        # Update the AgentProfile object with the remaining data (profile fields)
         return super().update(instance, validated_data)
