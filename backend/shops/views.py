@@ -6,84 +6,55 @@ from .models import Shop
 from .serializers import ShopSerializer
 from accounts.permissions import IsAgent, IsAdminOrDeveloper 
 
+class IsAgentForOwnShops(BasePermission):
+    """
+    Custom permission to allow agents to edit/delete only shops they created.
+    Admins/Developers can edit/delete any shop.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.user.role in [request.user.Role.ADMIN, request.user.Role.DEVELOPER]:
+            return True  # Admins/Developers can manage any shop
+        if request.user.role == request.user.Role.AGENT:
+            # Agents can only manage shops they created
+            return obj.created_by == request.user
+        return False
 
 
 class ShopViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing shops.
+    - Agents can create shops and manage (edit/delete) only their own shops.
+    - Admins/Developers can manage all shops.
+    """
+    queryset = Shop.objects.all()
     serializer_class = ShopSerializer
-    
-    # The queryset should be filtered to only show active shops 
-    # to regular users, but all shops to Admins/Agents.
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated:
-            # Admins/Developers can see all shops (active or inactive)
-            if user.role in [user.Role.ADMIN, user.Role.DEVELOPER]:
-                return Shop.objects.all()
-            
-            # Agents can see shops they created or shops that are active
-            if user.role == user.Role.AGENT:
-                return Shop.objects.filter(is_active=True) | Shop.objects.filter(created_by=user)
-            
-            # Store Owners can only see the shops linked to their account
-            if user.role == user.Role.STORE_OWNER:
-                 # Assumes the user object is also a StoreOwner instance 
-                 # or the StoreOwner model is directly linked to the user
-                return Shop.objects.filter(owner=user)
-                
-        # Default: Unauthenticated users see nothing (though IsAuthenticated should catch this)
-        return Shop.objects.none()
-
+    permission_classes = [IsAuthenticated, IsAgent | IsAdminOrDeveloper]
 
     def get_permissions(self):
         """
-        Instantiates and returns the list of permissions that this view requires.
+        Override to apply custom object-level permissions for update/delete actions.
         """
-        user = self.request.user
-        if self.action in ['list', 'retrieve']:
-            # Read access: Authenticated is enough, but queryset filters what they see.
-            permission_classes = [IsAuthenticated]
-        
-        elif self.action == 'create':
-            # Only Agents can capture new shops.
-            permission_classes = [IsAuthenticated, IsAgent]
-            
-        elif self.action in ['update', 'partial_update']:
-            # Admins can update any shop. Agents can update shops they created.
-            permission_classes = [IsAuthenticated, (IsAdminOrDeveloper | self.IsCreatorPermission)]
-            
-        elif self.action == 'destroy':
-            # Only Admins/Developers can delete shops.
-            permission_classes = [IsAuthenticated, IsAdminOrDeveloper]
-            
-        else:
-            permission_classes = [IsAuthenticated] # Default safe fallback
-
-        return [permission() for permission in permission_classes]
+        if self.action in ['update', 'partial_update', 'destroy']:
+            # Apply object-level permission for agents to restrict to their own shops
+            self.permission_classes = [IsAuthenticated, IsAgentForOwnShops]
+        return super().get_permissions()
 
     def perform_create(self, serializer):
-        # link shop to the agent creating it
+        """
+        Set the created_by field to the authenticated agent when creating a shop.
+        """
         serializer.save(created_by=self.request.user)
-        
-    def perform_update(self, serializer):
-        # Prevent agents from updating the 'is_active' status
-        if self.request.user.role == self.request.user.Role.AGENT and 'is_active' in serializer.validated_data:
-            # Only allow Admins to change activation status.
-            del serializer.validated_data['is_active']
-            
-        serializer.save()
 
-    class IsCreatorPermission(BasePermission):
+    def get_queryset(self):
         """
-        Custom permission to only allow creators of a shop to edit it.
+        Optionally filter the queryset for agents to only show their own shops.
+        Admins/Developers see all shops.
         """
-        message = 'You must be the original agent who created this shop to edit it.'
-
-        def has_object_permission(self, request, view, obj):
-            # Write permissions are only allowed to the agent who created the shop.
-            return obj.created_by == request.user
-        
-
-
+        user = self.request.user
+        if user.is_authenticated and user.role == user.Role.AGENT:
+            return Shop.objects.filter(created_by=user)
+        return Shop.objects.all()
+    
 class MyShopsView(views.APIView):
     """
     Retrieve all shops created by the authenticated agent.

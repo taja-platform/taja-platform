@@ -252,9 +252,7 @@ const Select = ({
         required={required}
       >
         {/* Placeholder/Initial Option */}
-        <option value="" disabled>
-          
-        </option>
+        <option value="" disabled></option>
 
         {/* Options from the provided array */}
         {options.map((option) => (
@@ -984,9 +982,11 @@ const DashboardView = ({ totalShops, shopsToday }) => {
 const AgentDashboard = () => {
   const [view, setView] = useState("dashboard"); // 'dashboard', 'profile', 'shops'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [shops, setShops] = useState(initialShops);
+  // Change initial state to an empty array for data fetching
+  const [shops, setShops] = useState([]);
   const [shopModalOpen, setShopModalOpen] = useState(false);
   const [currentShop, setCurrentShop] = useState(null);
+  const [isShopsLoading, setIsShopsLoading] = useState(true); // NEW: Loading state for shops
 
   const { user, logout, updateUser, fetchUserProfile } =
     useContext(AuthContext);
@@ -1016,6 +1016,32 @@ const AgentDashboard = () => {
     }
   }, [user]); // runs whenever 'user' changes
 
+  // 1. NEW: Function to fetch shops from the API
+  const fetchShops = useCallback(async () => {
+    setIsShopsLoading(true);
+    try {
+      // Assuming your API endpoint for agent's shops is /shops/
+      const response = await api.get("/shops/my-shops/");
+
+      // Update the shops state with the data from the API
+      setShops(response.data);
+      console.log("Fetched shops:", response.data);
+      // Replace mockToast with actual toast for better feedback
+      toast.success(`Successfully loaded ${response.data.length} shops.`);
+    } catch (error) {
+      console.error("Failed to fetch shops:", error);
+      toast.error("Failed to load shops. Please try again.");
+      setShops([]); // Reset shops on error
+    } finally {
+      setIsShopsLoading(false);
+    }
+  }, []);
+
+  // 2. NEW: useEffect to fetch shops when the component mounts
+  useEffect(() => {
+    fetchShops();
+  }, [fetchShops]);
+
   const handleLogout = () => {
     setShowConfirmModal(true);
   };
@@ -1026,6 +1052,7 @@ const AgentDashboard = () => {
   };
 
   // Filter shops added today for the dashboard count
+  // This now checks the shops fetched from the API
   const shopsTodayCount = shops.filter(
     (shop) => shop.date_created === new Date().toISOString().split("T")[0]
   ).length;
@@ -1034,29 +1061,35 @@ const AgentDashboard = () => {
     setProfile(newProfileData);
   };
 
-  const handleSaveShop = (shopData) => {
-    if (shopData.id) {
-      // Update existing shop
-      setShops((prev) =>
-        prev.map((s) => (s.id === shopData.id ? shopData : s))
-      );
-    } else {
-      // Add new shop
-      // Safely find the next ID
-      const maxId = shops.reduce(
-        (max, shop) => (shop.id > max ? shop.id : max),
-        0
-      );
-      const newId = maxId + 1;
-      const newShop = {
-        ...shopData,
-        id: newId,
-        date_created: new Date().toISOString().split("T")[0], // Set today's date
-      };
-      setShops((prev) => [...prev, newShop]);
-    }
+  // 3. UPDATED: Call API for saving/updating and then re-fetch the list
+  const handleSaveShop = async (shopData) => {
     setShopModalOpen(false);
     setCurrentShop(null);
+
+    const isUpdating = !!shopData.id;
+
+
+    console.log(`--- ${isUpdating ? "Updating" : "Adding"} Shop ---`, shopData);
+    // Remove the mock setTimeout and use the actual API
+    try {
+      if (isUpdating) {
+        // Update existing shop
+        await api.patch(`/shops/${shopData.id}/`, shopData);
+      } else {
+        // Add new shop
+        await api.post("/shops/", shopData);
+      }
+
+      toast.success(`Shop ${isUpdating ? "updated" : "added"} successfully!`);
+
+      // Re-fetch the shops list to update the UI
+      await fetchShops();
+    } catch (error) {
+      console.error(`Failed to ${isUpdating ? "update" : "add"} shop:`, error);
+      toast.error(
+        `Failed to ${isUpdating ? "update" : "add"} shop. Check console.`
+      );
+    }
   };
 
   const openAddShopModal = () => {
@@ -1086,6 +1119,7 @@ const AgentDashboard = () => {
             shops={shops}
             onAdd={openAddShopModal}
             onEdit={openEditShopModal}
+            isLoading={isShopsLoading} // Pass loading state
           />
         );
       case "dashboard":
@@ -1099,7 +1133,8 @@ const AgentDashboard = () => {
     }
   };
 
-  const ShopsManager = ({ shops, onAdd, onEdit }) => (
+  // 4. UPDATED: Add loading state to ShopsManager
+  const ShopsManager = ({ shops, onAdd, onEdit, isLoading }) => (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Shop Management</h1>
@@ -1111,12 +1146,27 @@ const AgentDashboard = () => {
           <span className="hidden sm:inline">Add New Shop</span>
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {shops.map((shop) => (
-          <ShopCard key={shop.id} shop={shop} onEdit={onEdit} />
-        ))}
-      </div>
-      {shops.length === 0 && (
+
+      {/* Show Loading State */}
+      {isLoading && (
+        <div className="text-center py-20 bg-white rounded-2xl shadow-xl">
+          <div className="w-10 h-10 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading shops...</p>
+        </div>
+      )}
+
+      {/* Show Shops List */}
+      {!isLoading && shops.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {shops.map((shop) => (
+            // Ensure your shop data from the API includes the fields used in ShopCard
+            <ShopCard key={shop.id} shop={shop} onEdit={onEdit} />
+          ))}
+        </div>
+      )}
+
+      {/* Show Empty State */}
+      {!isLoading && shops.length === 0 && (
         <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
           <p className="text-gray-500 font-medium">
             No shops added yet. Start by adding your first shop!
