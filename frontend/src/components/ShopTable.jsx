@@ -36,7 +36,7 @@ export default function ShopTable({ filters }) {
   const fetchShops = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/shops/shops");
+      const res = await api.get("/shops/");
 
       let shopData = res.data;
 

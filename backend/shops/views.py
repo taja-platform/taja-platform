@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, BasePermission
 from .models import Shop
 from .serializers import ShopSerializer
 from accounts.permissions import IsAgent, IsAdminOrDeveloper 
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class IsAgentForOwnShops(BasePermission):
     """
@@ -29,6 +30,7 @@ class ShopViewSet(viewsets.ModelViewSet):
     queryset = Shop.objects.all()
     serializer_class = ShopSerializer
     permission_classes = [IsAuthenticated, IsAgent | IsAdminOrDeveloper]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_permissions(self):
         """

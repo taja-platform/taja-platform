@@ -27,7 +27,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const res = await api.get("/shops/shops/");
+        const res = await api.get("/shops/");
         setShopCount(res.data.length); // assuming your endpoint returns a list of shops
       } catch (err) {
         console.error("Failed to fetch shops count:", err);

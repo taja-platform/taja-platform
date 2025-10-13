@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "sonner";
 
+
 import api from "../api/api";
+
+const BACKEND_API_BASE_URL = "http://localhost:8000";
 
 const LayoutDashboard = (props) => (
   <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,8 +377,21 @@ const Textarea = ({ id, name, label, value, onChange }) => {
 
 // --- Shop Management Component ---
 
-const ShopCard = ({ shop, onEdit }) => (
+const ShopCard = ({ shop, onEdit, rootBackEnd }) => (
   <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 transition-all duration-200 hover:shadow-xl hover:border-gray-200">
+    {shop.photos && shop.photos.length > 0 ? (
+      <img
+        // Use the first photo as the card's main image
+        src={`${rootBackEnd}${shop.photos[0].photo}`} 
+        alt={shop.name}
+        className="w-full h-40 object-cover rounded-lg mb-4 bg-gray-100"
+      />
+    ) : (
+      // Placeholder for shops with no image
+      <div className="w-full h-40 flex items-center justify-center bg-gray-100 rounded-lg mb-4">
+        <Store className="w-12 h-12 text-gray-300" />
+      </div>
+    )}
     <h3 className="text-xl font-semibold text-gray-900 mb-1">{shop.name}</h3>
     <p className="text-sm text-gray-500 mb-3 flex items-center">
       <MapPin className="w-4 h-4 mr-2 text-gray-400" />
@@ -421,10 +437,18 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
     }
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFiles, setImageFiles] = useState([]);
 
   // Get LGAs based on the currently selected state
   const lgaOptions = STATE_LGA_MAP[formData.state] || [];
 
+
+  const handleImageChange = (e) => {
+    if (e.target.files) {
+      // Convert FileList to an array
+      setImageFiles(Array.from(e.target.files));
+    }
+  };
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -494,6 +518,7 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
     }
 
     setIsLoading(true);
+    onSave(formData, imageFiles); 
     setTimeout(() => {
       onSave(formData);
       toast.success(`Shop ${isEditing ? "updated" : "added"} successfully!`);
@@ -569,10 +594,33 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
             disabled={!formData.state || lgaOptions.length === 0}
           />
 
-          {/* Location Pinning Section */}
-          {/* ... (rest of the component is unchanged) */}
+          {/* Photo Upload */}
           <div className="pt-3 border-t border-gray-100">
-            {/* ... (The rest of the Location Pinning section) */}
+            <label htmlFor="photos" className="block text-sm font-medium text-gray-700 mb-2">
+              Shop Photos (Optional)
+            </label>
+            <input
+              id="photos"
+              name="photos"
+              type="file"
+              multiple // Allow multiple files
+              onChange={handleImageChange}
+              className="block w-full text-sm text-gray-500
+                         file:mr-4 file:py-2 file:px-4
+                         file:rounded-full file:border-0
+                         file:text-sm file:font-semibold
+                         file:bg-gray-100 file:text-gray-800
+                         hover:file:bg-gray-200"
+            />
+            {/* Optional: Display selected file names as a preview */}
+            {imageFiles.length > 0 && (
+              <div className="mt-3 text-xs text-gray-600">
+                <p className="font-semibold">Selected files:</p>
+                <ul className="list-disc list-inside">
+                  {imageFiles.map(file => <li key={file.name}>{file.name}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-gray-100">
@@ -1053,44 +1101,63 @@ const AgentDashboard = () => {
 
   // Filter shops added today for the dashboard count
   // This now checks the shops fetched from the API
-  const shopsTodayCount = shops.filter(
-    (shop) => shop.date_created === new Date().toISOString().split("T")[0]
-  ).length;
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const shopsTodayCount = shops.filter((shop) => {
+    const shopDate = new Date(shop.date_created).toISOString().split("T")[0];
+    return shopDate === today;
+  }).length;
 
   const handleProfileSave = (newProfileData) => {
     setProfile(newProfileData);
   };
 
-  // 3. UPDATED: Call API for saving/updating and then re-fetch the list
-  const handleSaveShop = async (shopData) => {
-    setShopModalOpen(false);
-    setCurrentShop(null);
 
-    const isUpdating = !!shopData.id;
+// 3. UPDATED: Call API for saving/updating and then re-fetch the list
+const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFiles
+  setShopModalOpen(false);
+  setCurrentShop(null);
 
+  const isUpdating = !!shopData.id;
 
-    console.log(`--- ${isUpdating ? "Updating" : "Adding"} Shop ---`, shopData);
-    // Remove the mock setTimeout and use the actual API
-    try {
-      if (isUpdating) {
-        // Update existing shop
-        await api.patch(`/shops/${shopData.id}/`, shopData);
-      } else {
-        // Add new shop
-        await api.post("/shops/", shopData);
-      }
+  // IMPORTANT: Create a FormData object
+  const formData = new FormData();
 
-      toast.success(`Shop ${isUpdating ? "updated" : "added"} successfully!`);
-
-      // Re-fetch the shops list to update the UI
-      await fetchShops();
-    } catch (error) {
-      console.error(`Failed to ${isUpdating ? "update" : "add"} shop:`, error);
-      toast.error(
-        `Failed to ${isUpdating ? "update" : "add"} shop. Check console.`
-      );
+  // Append all shop data fields to the FormData object
+  // Note: Handle null/undefined values to avoid sending "null" as a string
+  Object.keys(shopData).forEach(key => {
+    if (key !== 'id' && shopData[key] !== null && shopData[key] !== undefined) {
+      formData.append(key, shopData[key]);
     }
-  };
+  });
+
+  // Append each file to the FormData object
+  // The key 'uploaded_photos' must match the serializer field name
+  if (imageFiles.length > 0) {
+    imageFiles.forEach(file => {
+      formData.append('uploaded_photos', file);
+    });
+  }
+
+  try {
+    if (isUpdating) {
+      // For PATCH, you send FormData directly. Axios handles the headers.
+      await api.patch(`/shops/${shopData.id}/`, formData);
+    } else {
+      // For POST, same thing.
+      await api.post("/shops/", formData);
+    }
+
+    toast.success(`Shop ${isUpdating ? "updated" : "added"} successfully!`);
+    await fetchShops(); // Re-fetch shops to see the changes
+  } catch (error) {
+    console.error(`Failed to ${isUpdating ? "update" : "add"} shop:`, error.response?.data);
+    toast.error(
+      `Failed to ${isUpdating ? "update" : "add"} shop. Check console.`
+    );
+  }
+};
 
   const openAddShopModal = () => {
     setCurrentShop(null);
@@ -1160,7 +1227,7 @@ const AgentDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {shops.map((shop) => (
             // Ensure your shop data from the API includes the fields used in ShopCard
-            <ShopCard key={shop.id} shop={shop} onEdit={onEdit} />
+            <ShopCard key={shop.id} shop={shop} onEdit={onEdit} rootBackEnd={BACKEND_API_BASE_URL} />
           ))}
         </div>
       )}

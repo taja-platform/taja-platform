@@ -81,12 +81,7 @@ export default function ShopsPage() {
     "Lagos",
     "Abuja",
     "Kano",
-    "Rivers",
     "Oyo",
-    "Kaduna",
-    "Enugu",
-    "Plateau",
-    "Delta",
   ];
   const shopStatuses = [
     { value: "all", label: "All Statuses" },

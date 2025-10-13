@@ -71,7 +71,7 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
     const fetchShops = async () => {
         setLoading(true);
         try {
-            const res = await api.get("/shops/shops/"); 
+            const res = await api.get("/shops/"); 
             let shopData = res.data;
             if (shopData && Array.isArray(shopData.results)) {
                 shopData = shopData.results;

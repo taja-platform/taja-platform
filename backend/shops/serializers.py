@@ -11,6 +11,11 @@ class ShopPhotoSerializer(serializers.ModelSerializer):
 
 class ShopSerializer(serializers.ModelSerializer):
     photos = ShopPhotoSerializer(many=True, required=False)  # nested
+    uploaded_photos = serializers.ListField(
+        child=serializers.ImageField(allow_empty_file=False, use_url=False),
+        write_only=True,
+        required=False  # Make it optional
+    )
     owner = serializers.StringRelatedField(read_only=True)   # show owner username
     created_by = serializers.StringRelatedField(read_only=True)  # show agent username
 
@@ -29,10 +34,12 @@ class ShopSerializer(serializers.ModelSerializer):
             "date_created",
             "date_updated",
             "state",
+            "local_government_area",
             "owner",
             "created_by",
             "created_by_id",
             "photos",
+            "uploaded_photos",
         ]
         read_only_fields = ["id", "date_created", "date_updated", "owner", "created_by", "created_by_id"]
     def __init__(self, *args, **kwargs):
@@ -48,28 +55,35 @@ class ShopSerializer(serializers.ModelSerializer):
                 self.fields['is_active'].read_only = False 
                 
     def create(self, validated_data):
-        # Extract nested photos if present
-        photos_data = validated_data.pop("photos", [])
-
+        # Pop the uploaded photos data, it's not a direct Shop model field
+        uploaded_photos_data = validated_data.pop("uploaded_photos", [])
+        
+        # Create the shop instance first
         shop = Shop.objects.create(**validated_data)
 
-        for photo_data in photos_data:
-            ShopPhoto.objects.create(shop=shop, **photo_data)
+        # Create ShopPhoto objects for each uploaded file
+        for photo_file in uploaded_photos_data:
+            ShopPhoto.objects.create(shop=shop, photo=photo_file)
 
         return shop
 
-    def update(self, instance, validated_data):
-        photos_data = validated_data.pop("photos", None)
 
-        # Update shop details
+    def update(self, instance, validated_data):
+        uploaded_photos_data = validated_data.pop("uploaded_photos", None)
+
+        # Update shop details as before
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # If photos provided, replace them
-        if photos_data is not None:
-            instance.photos.all().delete()
-            for photo_data in photos_data:
-                ShopPhoto.objects.create(shop=instance, **photo_data)
+        # If new photos are provided, you might want to replace them
+        # (or add to them, depending on requirements)
+        if uploaded_photos_data is not None:
+            # This deletes old photos. If you want to keep them, remove this line.
+            instance.photos.all().delete() 
+            for photo_file in uploaded_photos_data:
+                ShopPhoto.objects.create(shop=instance, photo=photo_file)
+
+
 
         return instance
