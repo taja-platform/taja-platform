@@ -1,14 +1,15 @@
-import React, { useContext, useState, useEffect, useCallback } from "react";
+import React, { useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 // import ShopFormModal from "./ShopFormModal";
 import { toast } from "sonner";
+import { X, Upload, Trash2 } from 'lucide-react';
 
 
 import api from "../api/api";
 
 const BACKEND_API_BASE_URL = "http://localhost:8000/";
-
+const MAX_PHOTOS = 5; 
 
 
 const ChevronLeft = (props) => (
@@ -694,295 +695,443 @@ const ShopCard = ({ shop, onEdit, onView, rootBackEnd }) => {
 };
 
 const ShopFormModal = ({ shop, onClose, onSave }) => {
-  // FIX: Using optional chaining for a clean null check
-  const isEditing = !!shop?.id;
+    // FIX: Using optional chaining for a clean null check
+    const isEditing = !!shop?.id;
 
-  const [formData, setFormData] = useState(
-    shop || {
-      name: "",
-      phone_number: "",
-      address: "",
-      // NEW: Add local_government_area to initial state
-      state: "",
-      local_government_area: "",
-      latitude: null,
-      longitude: null,
-    }
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [imageFiles, setImageFiles] = useState([]);
+    const [formData, setFormData] = useState(
+        shop || {
+            name: "",
+            phone_number: "",
+            address: "",
+            state: "",
+            local_government_area: "",
+            latitude: null,
+            longitude: null,
+            // Ensure any other required fields are here, e.g., description
+            description: shop?.description || "", 
+        }
+    );
 
-  // Get LGAs based on the currently selected state
-  const lgaOptions = STATE_LGA_MAP[formData.state] || [];
+    // --- NEW STATES FOR IMAGE MANAGEMENT ---
+    // Photos currently saved in the DB (used for display and marking for deletion)
+    const [existingPhotos, setExistingPhotos] = useState(shop?.photos || []); 
+    // New files selected for upload
+    const [newFiles, setNewFiles] = useState([]); 
+    // IDs of photos to be deleted
+    const [deletedPhotoIds, setDeletedPhotoIds] = useState([]); 
+    
+    const [isLoading, setIsLoading] = useState(false);
+    const [imageError, setImageError] = useState(null); // State for image validation errors
+
+    // Get LGAs based on the currently selected state
+    const lgaOptions = STATE_LGA_MAP[formData.state] || [];
 
 
-  const handleImageChange = (e) => {
-    if (e.target.files) {
-      // Convert FileList to an array
-      setImageFiles(Array.from(e.target.files));
-    }
-  };
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+    // --- COMPUTED VALUES FOR LIMIT CHECKING ---
+    const totalCurrentPhotos = useMemo(() => {
+        // Photos to keep = (Original total photos - deleted photos) + new uploads
+        const originalPhotoCount = shop?.photos?.length || 0;
+        const photosToKeep = originalPhotoCount - deletedPhotoIds.length;
+        return photosToKeep + newFiles.length;
+    }, [deletedPhotoIds, newFiles, shop]);
 
-    setFormData((prev) => {
-      // Logic to reset LGA if the State is changed
-      if (name === "state") {
-        return {
-          ...prev,
-          state: value,
-          local_government_area: "", // Reset LGA when state changes
-        };
-      }
-      return { ...prev, [name]: value };
-    });
-  };
+    const canAddMorePhotos = totalCurrentPhotos < MAX_PHOTOS;
 
-  const handleLocationPin = (lat, lng) => {
-    setFormData((prev) => ({
-      ...prev,
-      latitude: lat,
-      longitude: lng,
-    }));
-    mockToast.info(`Location Pinned: Lat ${lat}, Lng ${lng}`);
-  };
 
-  const useCurrentLocation = () => {
-    setIsLoading(true);
-    mockToast.info("Requesting current location...");
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          handleLocationPin(
-            position.coords.latitude.toFixed(6),
-            position.coords.longitude.toFixed(6)
-          );
-          setIsLoading(false);
-        },
-        (error) => {
-          toast.error(
-            "Could not get location. Ensure permissions are granted."
-          );
-          console.error("Geolocation error:", error);
-          setIsLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    } else {
-      toast.error("Geolocation is not supported by this browser.");
-      setIsLoading(false);
-    }
-  };
+    // --- IMAGE HANDLERS ---
+    
+    // Handler to mark an existing photo for deletion
+    const handleRemoveExisting = (photoId) => {
+        // 1. Remove from the visible list (`existingPhotos` state)
+        setExistingPhotos(prev => prev.filter(photo => photo.id !== photoId));
+        // 2. Add to the list to be deleted on submit (`deletedPhotoIds` state)
+        setDeletedPhotoIds(prev => [...prev, photoId]);
+    };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Add validation check for State and LGA
-    if (!formData.state) {
-      toast.error("Please select a State/Region.");
-      return;
-    }
-    if (!formData.local_government_area) {
-      toast.error("Please select a Local Government Area.");
-      return;
-    }
-    if (!formData.latitude || !formData.longitude) {
-      toast.error("Please pin the shop's location.");
-      return;
-    }
+    // Handler to remove a newly added file from the queue
+    const handleRemoveNewFile = (index) => {
+        setNewFiles(prev => prev.filter((_, i) => i !== index));
+        setImageError(null);
+    };
 
-    setIsLoading(true);
-    onSave(formData, imageFiles); 
-    setTimeout(() => {
-      onSave(formData);
-      toast.success(`Shop ${isEditing ? "updated" : "added"} successfully!`);
-      setIsLoading(false);
-    }, 1000);
-  };
+    // Modified handler for file selection with limit check
+    const handleImageChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
 
-  
+        const slotsAvailable = MAX_PHOTOS - totalCurrentPhotos;
 
-  return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {isEditing ? "Edit Shop" : "Add New Shop"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <XIcon className="w-6 h-6" />
-          </button>
+        if (files.length > slotsAvailable) {
+            setImageError(`You can only add ${slotsAvailable} more photo(s). The limit is ${MAX_PHOTOS}.`);
+            e.target.value = null; // Clear input
+            return;
+        }
+
+        setImageError(null);
+        setNewFiles(prev => [...prev, ...files]);
+        e.target.value = null; // Clear input
+    };
+    
+    // Existing handlers
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+
+        setFormData((prev) => {
+            if (name === "state") {
+                return {
+                    ...prev,
+                    state: value,
+                    local_government_area: "", // Reset LGA when state changes
+                };
+            }
+            return { ...prev, [name]: value };
+        });
+    };
+
+    const handleLocationPin = (lat, lng) => {
+        setFormData((prev) => ({
+            ...prev,
+            latitude: lat,
+            longitude: lng,
+        }));
+        mockToast.info(`Location Pinned: Lat ${lat}, Lng ${lng}`);
+    };
+
+    const useCurrentLocation = () => {
+        setIsLoading(true);
+        mockToast.info("Requesting current location...");
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    handleLocationPin(
+                        position.coords.latitude.toFixed(6),
+                        position.coords.longitude.toFixed(6)
+                    );
+                    setIsLoading(false);
+                },
+                (error) => {
+                    toast.error(
+                        "Could not get location. Ensure permissions are granted."
+                    );
+                    console.error("Geolocation error:", error);
+                    setIsLoading(false);
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            toast.error("Geolocation is not supported by this browser.");
+            setIsLoading(false);
+        }
+    };
+
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        
+        // --- VALIDATION ---
+        if (!formData.state) {
+            toast.error("Please select a State/Region.");
+            return;
+        }
+        if (!formData.local_government_area) {
+            toast.error("Please select a Local Government Area.");
+            return;
+        }
+        if (!formData.latitude || !formData.longitude) {
+            toast.error("Please pin the shop's location.");
+            return;
+        }
+
+        // --- API PAYLOAD CONSTRUCTION (CRITICAL UPDATE) ---
+        // Must use FormData for file uploads
+        const data = new FormData();
+
+        // 1. Append all standard form fields
+        Object.keys(formData).forEach(key => {
+            const value = formData[key];
+            // Skip complex objects/arrays and null/undefined values
+            if (value !== null && value !== undefined && typeof value !== 'object') {
+                data.append(key, value);
+            }
+        });
+        
+        // 2. Handle deletions (only in edit mode)
+        if (isEditing && deletedPhotoIds.length > 0) {
+            // Must JSON stringify the array for DRF to correctly parse ListField from FormData
+            data.append('photos_to_delete_ids', JSON.stringify(deletedPhotoIds));
+        }
+
+        // 3. Append new photo files
+        newFiles.forEach(file => {
+            // 'uploaded_photos' MUST match the ListField name in your ShopSerializer
+            data.append('uploaded_photos', file); 
+        });
+
+        setIsLoading(true);
+        
+        // Pass the FormData payload and the shop ID (if editing) to the parent function
+        onSave(data, isEditing ? shop.id : null); 
+        
+        // NOTE: The `onSave` function in the parent component should now handle the actual API call 
+        // (POST for new shop, PUT/PATCH for edit shop) and manage setting `isLoading` back to false 
+        // and calling `onClose` upon success.
+        
+        // Mock success for development flow:
+        setTimeout(() => {
+             toast.success(`Shop ${isEditing ? "updated" : "added"} successfully!`);
+             setIsLoading(false);
+             onClose(); 
+         }, 1000);
+    };
+
+
+    return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                        {isEditing ? "Edit Shop" : "Add New Shop"}
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600"
+                    >
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Basic Info */}
+                    <Input
+                        id="name"
+                        name="name"
+                        label="Shop Name"
+                        type="text"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                    />
+                    <Input
+                        id="phone_number"
+                        name="phone_number"
+                        label="Phone Number"
+                        type="tel"
+                        value={formData.phone_number}
+                        onChange={handleChange}
+                    />
+                    <Input
+                        id="address"
+                        name="address"
+                        label="Full Address"
+                        type="text"
+                        value={formData.address}
+                        onChange={handleChange}
+                        required
+                    />
+                    <Input
+                        id="description"
+                        name="description"
+                        label="Description (Optional)"
+                        type="text"
+                        value={formData.description || ''}
+                        onChange={handleChange}
+                    />
+
+                    {/* State/LGA Selection */}
+                    <Select
+                        id="state"
+                        name="state"
+                        label="State/Region"
+                        value={formData.state}
+                        onChange={handleChange}
+                        options={STATES} 
+                        required
+                    />
+                    <Select
+                        id="local_government_area"
+                        name="local_government_area"
+                        label="Local Government Area"
+                        value={formData.local_government_area}
+                        onChange={handleChange}
+                        options={lgaOptions} 
+                        required
+                        disabled={!formData.state || lgaOptions.length === 0}
+                    />
+
+                    {/* --- PHOTO DISPLAY AND UPLOAD SECTION (Updated) --- */}
+                    <div className="pt-3 border-t border-gray-100">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Shop Photos (<span className="font-semibold text-blue-600">{totalCurrentPhotos}</span> / {MAX_PHOTOS} used)
+                        </label>
+
+                        {/* Photo Display Grid */}
+                        <div className="flex flex-wrap gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50 min-h-24">
+                            
+                            {/* 1. Existing Photos (Kept) */}
+                            {existingPhotos.map((photo) => (
+                                <div key={photo.id} className="relative w-24 h-24 rounded-lg overflow-hidden shadow-md group border-2 border-transparent hover:border-red-500 transition-colors">
+                                    <img 
+                                        src={photo.photo} 
+                                        alt={`Shop Photo ${photo.id}`} 
+                                        className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-75"
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleRemoveExisting(photo.id)}
+                                        className="absolute top-1 right-1 bg-white text-red-600 rounded-full p-1 opacity-90 transition-opacity duration-200 shadow-lg hover:bg-red-600 hover:text-white"
+                                        title="Mark for Deletion"
+                                    >
+                                        <Trash2 size={16} /> 
+                                    </button>
+                                </div>
+                            ))}
+
+                            {/* 2. Newly Added Files (Preview) */}
+                            {newFiles.map((file, index) => (
+                                <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden shadow-md group border-2 border-green-500">
+                                    <img 
+                                        src={URL.createObjectURL(file)} 
+                                        alt={file.name} 
+                                        className="w-full h-full object-cover"
+                                        onLoad={(e) => URL.revokeObjectURL(e.target.src)} 
+                                    />
+                                    <span className="absolute bottom-0 left-0 right-0 text-xs text-center bg-green-500 text-white truncate px-1 font-semibold">NEW</span>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleRemoveNewFile(index)}
+                                        className="absolute top-1 right-1 bg-gray-800 text-white rounded-full p-1 transition-colors hover:bg-red-700"
+                                        title="Remove New File"
+                                    >
+                                        <X size={16} /> 
+                                    </button>
+                                </div>
+                            ))}
+
+                            {/* 3. Add Image Button (File Input) */}
+                            {canAddMorePhotos && (
+                                <label 
+                                    htmlFor="photo-upload" 
+                                    className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-colors"
+                                >
+                                    <Upload size={24} />
+                                    <span className="text-xs mt-1">Add Photo</span>
+                                    <input 
+                                        id="photo-upload" 
+                                        type="file" 
+                                        accept="image/jpeg,image/png" 
+                                        multiple 
+                                        onChange={handleImageChange} 
+                                        className="hidden"
+                                        disabled={!canAddMorePhotos || isLoading}
+                                    />
+                                </label>
+                            )}
+                            
+                            {/* Empty state or limit reached message */}
+                            {totalCurrentPhotos === 0 && (
+                                <p className="text-gray-500 text-sm italic py-8">No photos loaded. Click "Add Photo" to begin!</p>
+                            )}
+                        </div>
+
+                        {imageError && (
+                            <p className="mt-2 text-sm font-medium text-red-600 flex items-center">
+                                <X size={16} className="mr-1" />
+                                {imageError}
+                            </p>
+                        )}
+                        <p className="mt-2 text-xs text-gray-500">
+                            Maximum **{MAX_PHOTOS}** photos allowed.
+                        </p>
+                    </div>
+                    {/* --- END PHOTO SECTION --- */}
+
+
+                    {/* Location Coordinates Section */}
+                    <div className="pt-3 border-t border-gray-100">
+                        <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                            <MapPin className="w-5 h-5 mr-2 text-gray-900" /> Location
+                            Coordinates
+                        </h3>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <Input
+                                id="latitude"
+                                name="latitude"
+                                label="Latitude"
+                                type="number"
+                                step="0.000001"
+                                value={formData.latitude || ""}
+                                onChange={handleChange}
+                                readOnly={isLoading}
+                                required
+                            />
+                            <Input
+                                id="longitude"
+                                name="longitude"
+                                label="Longitude"
+                                type="number"
+                                step="0.000001"
+                                value={formData.longitude || ""}
+                                onChange={handleChange}
+                                readOnly={isLoading}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={useCurrentLocation}
+                                disabled={isLoading}
+                                className="w-full py-3 flex items-center justify-center bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400"
+                            >
+                                <CheckCircle className="w-5 h-5 mr-2" />
+                                {isLoading ? "Locating..." : "Use Current Location"}
+                            </button>
+
+                            <div className="text-center text-sm text-gray-500 py-2">
+                                - OR -
+                            </div>
+
+                            {/* Simulated Map */}
+                            <div
+                                className="h-40 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors"
+                                onClick={() =>
+                                    handleLocationPin(
+                                        (34.053 + (Math.random() * 0.01)).toFixed(4),
+                                        (-118.243 - (Math.random() * 0.01)).toFixed(4)
+                                    )
+                                }
+                            >
+                                <p className="text-center">
+                                    Click here to simulate selecting a new location from a map.
+                                    <br />
+                                    (Lat/Lng will be auto-filled)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full h-12 mt-6 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm"
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center justify-center space-x-3">
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Saving...</span>
+                            </div>
+                        ) : (
+                            <span>{isEditing ? "Update Shop" : "Add Shop"}</span>
+                        )}
+                    </button>
+                </form>
+            </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Basic Info */}
-          <Input
-            id="name"
-            name="name"
-            label="Shop Name"
-            type="text"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            id="phone_number"
-            name="phone_number"
-            label="Phone Number"
-            type="tel"
-            value={formData.phone_number}
-            onChange={handleChange}
-          />
-          <Input
-            id="address"
-            name="address"
-            label="Full Address"
-            type="text"
-            value={formData.address}
-            onChange={handleChange}
-            required
-          />
-
-          {/* NEW: State Select Field */}
-          <Select
-            id="state"
-            name="state"
-            label="State/Region"
-            value={formData.state}
-            onChange={handleChange}
-            options={STATES} // Use the sorted list of states
-            required
-          />
-
-          {/* NEW: Local Government Select Field (Dependent) */}
-          <Select
-            id="local_government_area"
-            name="local_government_area"
-            label="Local Government Area"
-            value={formData.local_government_area}
-            onChange={handleChange}
-            options={lgaOptions} // Options are filtered based on State
-            required
-            // Disable if no state is selected
-            disabled={!formData.state || lgaOptions.length === 0}
-          />
-
-          {/* Photo Upload */}
-          <div className="pt-3 border-t border-gray-100">
-            <label htmlFor="photos" className="block text-sm font-medium text-gray-700 mb-2">
-              Shop Photos (Optional)
-            </label>
-            <input
-              id="photos"
-              name="photos"
-              type="file"
-              multiple // Allow multiple files
-              onChange={handleImageChange}
-              className="block w-full text-sm text-gray-500
-                         file:mr-4 file:py-2 file:px-4
-                         file:rounded-full file:border-0
-                         file:text-sm file:font-semibold
-                         file:bg-gray-100 file:text-gray-800
-                         hover:file:bg-gray-200"
-            />
-            {/* Optional: Display selected file names as a preview */}
-            {imageFiles.length > 0 && (
-              <div className="mt-3 text-xs text-gray-600">
-                <p className="font-semibold">Selected files:</p>
-                <ul className="list-disc list-inside">
-                  {imageFiles.map(file => <li key={file.name}>{file.name}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div className="pt-3 border-t border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-gray-900" /> Location
-              Coordinates
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <Input
-                id="latitude"
-                name="latitude"
-                label="Latitude"
-                type="number"
-                step="0.000001"
-                value={formData.latitude || ""}
-                onChange={handleChange}
-                readOnly={isLoading}
-                required
-              />
-              <Input
-                id="longitude"
-                name="longitude"
-                label="Longitude"
-                type="number"
-                step="0.000001"
-                value={formData.longitude || ""}
-                onChange={handleChange}
-                readOnly={isLoading}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={useCurrentLocation}
-                disabled={isLoading}
-                className="w-full py-3 flex items-center justify-center bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400"
-              >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                {isLoading ? "Locating..." : "Use Current Location"}
-              </button>
-
-              <div className="text-center text-sm text-gray-500 py-2">
-                - OR -
-              </div>
-
-              {/* Simulated Map */}
-              <div
-                className="h-40 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors"
-                onClick={() =>
-                  handleLocationPin(
-                    34.053 + (Math.random() * 0.01).toFixed(4),
-                    -118.243 - (Math.random() * 0.01).toFixed(4)
-                  )
-                }
-              >
-                <p className="text-center">
-                  Click here to simulate selecting a new location from a map.
-                  <br />
-                  (Lat/Lng will be auto-filled)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 mt-6 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center space-x-3">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Saving...</span>
-              </div>
-            ) : (
-              <span>{isEditing ? "Update Shop" : "Add Shop"}</span>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
+    );
 };
-
 
 
 const ProfileEditor = ({ profile, onSave, user, updateUser }) => {
@@ -1392,47 +1541,42 @@ const AgentDashboard = () => {
 
 
 // 3. UPDATED: Call API for saving/updating and then re-fetch the list
-const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFiles
+const handleSaveShop = async (formDataPayload, shopId = null) => {
   setShopModalOpen(false);
   setCurrentShop(null);
 
-  const isUpdating = !!shopData.id;
-
-  // IMPORTANT: Create a FormData object
-  const formData = new FormData();
-
-  // Append all shop data fields to the FormData object
-  // Note: Handle null/undefined values to avoid sending "null" as a string
-  Object.keys(shopData).forEach(key => {
-    if (key !== 'id' && shopData[key] !== null && shopData[key] !== undefined) {
-      formData.append(key, shopData[key]);
-    }
-  });
-
-  // Append each file to the FormData object
-  // The key 'uploaded_photos' must match the serializer field name
-  if (imageFiles.length > 0) {
-    imageFiles.forEach(file => {
-      formData.append('uploaded_photos', file);
-    });
-  }
+  // The modal now sends the complete FormData object and the shop ID separately.
+  const isUpdating = !!shopId;
+  
+  // NOTE: The formDataPayload already contains all fields, including 'uploaded_photos'
+  // and 'photos_to_delete_ids' (if present).
 
   try {
     if (isUpdating) {
-      // For PATCH, you send FormData directly. Axios handles the headers.
-      await api.patch(`/shops/${shopData.id}/`, formData);
+      // Use the shopId provided by the modal for the PATCH endpoint
+      // formDataPayload is the pre-built FormData object
+      await api.patch(`/shops/${shopId}/`, formDataPayload);
     } else {
-      // For POST, same thing.
-      await api.post("/shops/", formData);
+      // For POST (new shop), use the endpoint and the pre-built payload
+      await api.post("/shops/", formDataPayload);
     }
 
     toast.success(`Shop ${isUpdating ? "updated" : "added"} successfully!`);
     await fetchShops(); // Re-fetch shops to see the changes
   } catch (error) {
     console.error(`Failed to ${isUpdating ? "update" : "add"} shop:`, error.response?.data);
-    toast.error(
-      `Failed to ${isUpdating ? "update" : "add"} shop. Check console.`
-    );
+    
+    // Enhanced error message: Attempt to display specific validation errors from DRF
+    let errorMessage = `Failed to ${isUpdating ? "update" : "add"} shop.`;
+    if (error.response?.data && typeof error.response.data === 'object') {
+        // Join all error messages into a single, readable string
+        const details = Object.entries(error.response.data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join(' | ');
+        errorMessage = `${errorMessage} Details: ${details}`;
+    }
+
+    toast.error(errorMessage);
   }
 };
 
