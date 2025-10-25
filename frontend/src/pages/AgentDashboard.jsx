@@ -6,7 +6,31 @@ import { toast } from "sonner";
 
 import api from "../api/api";
 
-const BACKEND_API_BASE_URL = "http://localhost:8000";
+const BACKEND_API_BASE_URL = "http://localhost:8000/";
+
+
+
+const ChevronLeft = (props) => (
+  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M15 19l-7-7 7-7"
+    />
+  </svg>
+);
+const ChevronRight = (props) => (
+  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 5l7 7-7 7"
+    />
+  </svg>
+);
+
 
 const LayoutDashboard = (props) => (
   <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,48 +401,129 @@ const Textarea = ({ id, name, label, value, onChange }) => {
 
 // --- Shop Management Component ---
 
-const ShopCard = ({ shop, onEdit, rootBackEnd }) => (
-  <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 transition-all duration-200 hover:shadow-xl hover:border-gray-200">
-    {shop.photos && shop.photos.length > 0 ? (
-      <img
-        // Use the first photo as the card's main image
-        src={`${rootBackEnd}${shop.photos[0].photo}`} 
-        alt={shop.name}
-        className="w-full h-40 object-cover rounded-lg mb-4 bg-gray-100"
-      />
-    ) : (
-      // Placeholder for shops with no image
-      <div className="w-full h-40 flex items-center justify-center bg-gray-100 rounded-lg mb-4">
-        <Store className="w-12 h-12 text-gray-300" />
+const ShopCard = ({ shop, onEdit, rootBackEnd }) => {
+  const shopPhotos = shop.photos || [];
+  const hasPhotos = shopPhotos.length > 0;
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Auto-slide effect
+  useEffect(() => {
+    if (!hasPhotos || shopPhotos.length < 2) return;
+
+    // Set an interval to change the index every 3 seconds (3000ms)
+    const slideInterval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === shopPhotos.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 3000);
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => clearInterval(slideInterval);
+  }, [hasPhotos, shopPhotos.length]);
+
+  const handleNext = (e) => {
+    e.stopPropagation(); // Prevent card click/other side effects
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex === shopPhotos.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const handlePrev = (e) => {
+    e.stopPropagation(); // Prevent card click/other side effects
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex === 0 ? shopPhotos.length - 1 : prevIndex - 1
+    );
+  };
+
+  // The URL of the currently displayed image
+  const currentImageUrl = hasPhotos
+    ? shopPhotos[currentImageIndex].photo // Assuming 'photo' holds the URL
+    : null;
+
+  return (
+    <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 transition-all duration-200 hover:shadow-xl hover:border-gray-200">
+      {/* --- SLIDESHOW CONTAINER --- */}
+      <div className="relative w-full h-40 rounded-lg mb-4 bg-gray-100 overflow-hidden">
+        {hasPhotos ? (
+          <>
+            <img
+              // Use the current image URL
+              src={currentImageUrl}
+              alt={`${shop.name} photo ${currentImageIndex + 1}`}
+              className="w-full h-full object-cover transition-opacity duration-500 ease-in-out"
+            />
+            
+            {/* Navigation Buttons (Only visible if more than one photo) */}
+            {shopPhotos.length > 1 && (
+              <>
+                {/* Previous Button */}
+                <button
+                  onClick={handlePrev}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                {/* Next Button */}
+                <button
+                  onClick={handleNext}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
+            {/* Indicator Dots (Optional) */}
+            {shopPhotos.length > 1 && (
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center space-x-1 z-10">
+                {shopPhotos.map((_, index) => (
+                  <span
+                    key={index}
+                    className={`block w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex ? "bg-white" : "bg-white/50"
+                    }`}
+                  ></span>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          // Placeholder for shops with no image
+          <div className="w-full h-full flex items-center justify-center">
+            <Store className="w-12 h-12 text-gray-300" />
+          </div>
+        )}
       </div>
-    )}
-    <h3 className="text-xl font-semibold text-gray-900 mb-1">{shop.name}</h3>
-    <p className="text-sm text-gray-500 mb-3 flex items-center">
-      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-      {shop.address}
-    </p>
-    <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mb-4">
-      <div>
-        <span className="font-medium text-gray-500">Latitude:</span>{" "}
-        {shop.latitude}
+      {/* --- END SLIDESHOW CONTAINER --- */}
+
+      <h3 className="text-xl font-semibold text-gray-900 mb-1">{shop.name}</h3>
+      <p className="text-sm text-gray-500 mb-3 flex items-center">
+        <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+        {shop.address}
+      </p>
+      <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mb-4">
+        <div>
+          <span className="font-medium text-gray-500">Latitude:</span>{" "}
+          {shop.latitude}
+        </div>
+        <div>
+          <span className="font-medium text-gray-500">Longitude:</span>{" "}
+          {shop.longitude}
+        </div>
+        <div className="col-span-2">
+          <span className="font-medium text-gray-500">Created:</span>{" "}
+          {shop.date_created}
+        </div>
       </div>
-      <div>
-        <span className="font-medium text-gray-500">Longitude:</span>{" "}
-        {shop.longitude}
-      </div>
-      <div className="col-span-2">
-        <span className="font-medium text-gray-500">Created:</span>{" "}
-        {shop.date_created}
-      </div>
+      <button
+        onClick={() => onEdit(shop)}
+        className="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors text-sm"
+      >
+        Edit Details
+      </button>
     </div>
-    <button
-      onClick={() => onEdit(shop)}
-      className="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors text-sm"
-    >
-      Edit Details
-    </button>
-  </div>
-);
+  );
+};
 
 const ShopFormModal = ({ shop, onClose, onSave }) => {
   // FIX: Using optional chaining for a clean null check
