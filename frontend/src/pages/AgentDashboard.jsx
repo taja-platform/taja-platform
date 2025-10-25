@@ -1540,45 +1540,36 @@ const AgentDashboard = () => {
   };
 
 
-// 3. UPDATED: Call API for saving/updating and then re-fetch the list
-const handleSaveShop = async (formDataPayload, shopId = null) => {
-  setShopModalOpen(false);
-  setCurrentShop(null);
 
-  // The modal now sends the complete FormData object and the shop ID separately.
-  const isUpdating = !!shopId;
-  
-  // NOTE: The formDataPayload already contains all fields, including 'uploaded_photos'
-  // and 'photos_to_delete_ids' (if present).
+  const handleSaveShop = async (formDataPayload, shopId = null) => {
+      setShopModalOpen(false);
+      setCurrentShop(null);
 
-  try {
-    if (isUpdating) {
-      // Use the shopId provided by the modal for the PATCH endpoint
-      // formDataPayload is the pre-built FormData object
-      await api.patch(`/shops/${shopId}/`, formDataPayload);
-    } else {
-      // For POST (new shop), use the endpoint and the pre-built payload
-      await api.post("/shops/", formDataPayload);
-    }
+      const isUpdating = !!shopId;
+      
+      try {
+          if (isUpdating) {
+              await api.patch(`/shops/${shopId}/`, formDataPayload);
+          } else {
+              await api.post("/shops/", formDataPayload);
+          }
 
-    toast.success(`Shop ${isUpdating ? "updated" : "added"} successfully!`);
-    await fetchShops(); // Re-fetch shops to see the changes
-  } catch (error) {
-    console.error(`Failed to ${isUpdating ? "update" : "add"} shop:`, error.response?.data);
-    
-    // Enhanced error message: Attempt to display specific validation errors from DRF
-    let errorMessage = `Failed to ${isUpdating ? "update" : "add"} shop.`;
-    if (error.response?.data && typeof error.response.data === 'object') {
-        // Join all error messages into a single, readable string
-        const details = Object.entries(error.response.data)
-            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-            .join(' | ');
-        errorMessage = `${errorMessage} Details: ${details}`;
-    }
+          toast.success(`Shop ${isUpdating ? "updated" : "added"} successfully!`);
+          await fetchShops(); // Re-fetch shops to see the changes
+      } catch (error) {
+          console.error(`Failed to ${isUpdating ? "update" : "add"} shop:`, error.response?.data);
+          
+          let errorMessage = `Failed to ${isUpdating ? "update" : "add"} shop.`;
+          if (error.response?.data && typeof error.response.data === 'object') {
+              const details = Object.entries(error.response.data)
+                  .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                  .join(' | ');
+              errorMessage = `${errorMessage} Details: ${details}`;
+          }
 
-    toast.error(errorMessage);
-  }
-};
+          toast.error(errorMessage);
+      }
+  };
 
   const openAddShopModal = () => {
     setCurrentShop(null);
