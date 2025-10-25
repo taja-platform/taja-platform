@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+// import ShopFormModal from "./ShopFormModal";
 import { toast } from "sonner";
 
 
@@ -798,6 +799,8 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
     }, 1000);
   };
 
+  
+
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -980,7 +983,7 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
   );
 };
 
-// --- Profile Editor Component (UNCHANGED) ---
+
 
 const ProfileEditor = ({ profile, onSave, user, updateUser }) => {
   const [formData, setFormData] = useState(profile);
