@@ -30,8 +30,6 @@ const ChevronRight = (props) => (
     />
   </svg>
 );
-
-
 const LayoutDashboard = (props) => (
   <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
@@ -128,36 +126,17 @@ const Plus = (props) => (
     />
   </svg>
 );
+const Edit = (props) => (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+);
+const Phone = (props) => (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.49 5.49l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+    </svg>
+);
 
-const initialShops = [
-  {
-    id: 1,
-    name: "QuickStop Groceries",
-    address: "45 Elm Rd",
-    latitude: 34.0522,
-    longitude: -118.2437,
-    state: "CA",
-    date_created: "2024-05-10",
-  },
-  {
-    id: 2,
-    name: "The Corner Pharmacy",
-    address: "800 Pine Ave",
-    latitude: 34.045,
-    longitude: -118.25,
-    state: "CA",
-    date_created: "2024-06-15",
-  },
-  {
-    id: 3,
-    name: "Tech Repair Hub",
-    address: "99 Broadway",
-    latitude: 34.06,
-    longitude: -118.2,
-    state: "CA",
-    date_created: "2024-07-01",
-  },
-];
 
 const mockToast = {
   success: (msg) => console.log(`[TOAST SUCCESS] ${msg}`),
@@ -399,9 +378,195 @@ const Textarea = ({ id, name, label, value, onChange }) => {
   );
 };
 
-// --- Shop Management Component ---
+// --- NEW: ImageSlideshow Component (Logic extracted from previous ShopCard) ---
+const ImageSlideshow = ({ shopPhotos = [], shopName, heightClass = 'h-40' }) => {
+    const hasPhotos = shopPhotos.length > 0;
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-const ShopCard = ({ shop, onEdit, rootBackEnd }) => {
+    // Auto-slide effect (runs only if there's more than one photo)
+    useEffect(() => {
+        if (!hasPhotos || shopPhotos.length < 2) return;
+
+        // Set an interval to change the index every 3 seconds (3000ms)
+        const slideInterval = setInterval(() => {
+            setCurrentImageIndex((prevIndex) =>
+                prevIndex === shopPhotos.length - 1 ? 0 : prevIndex + 1
+            );
+        }, 3000);
+
+        return () => clearInterval(slideInterval);
+    }, [hasPhotos, shopPhotos.length]);
+
+    const handleNext = (e) => {
+        if (e) e.stopPropagation();
+        setCurrentImageIndex((prevIndex) =>
+            prevIndex === shopPhotos.length - 1 ? 0 : prevIndex + 1
+        );
+    };
+
+    const handlePrev = (e) => {
+        if (e) e.stopPropagation();
+        setCurrentImageIndex((prevIndex) =>
+            prevIndex === 0 ? shopPhotos.length - 1 : prevIndex - 1
+        );
+    };
+
+    const currentImageUrl = hasPhotos
+        ? shopPhotos[currentImageIndex].photo // Assuming 'photo' holds the URL
+        : null;
+
+    return (
+        <div className={`relative w-full ${heightClass} rounded-lg bg-gray-100 overflow-hidden`}>
+            {hasPhotos ? (
+                <>
+                    <img
+                        src={currentImageUrl}
+                        alt={`${shopName} photo ${currentImageIndex + 1}`}
+                        className="w-full h-full object-cover transition-opacity duration-500 ease-in-out"
+                    />
+
+                    {/* Navigation Buttons (Only visible if more than one photo) */}
+                    {shopPhotos.length > 1 && (
+                        <>
+                            {/* Previous Button */}
+                            <button
+                                onClick={handlePrev}
+                                className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            {/* Next Button */}
+                            <button
+                                onClick={handleNext}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </>
+                    )}
+
+                    {/* Indicator Dots */}
+                    {shopPhotos.length > 1 && (
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center space-x-1 z-10">
+                            {shopPhotos.map((_, index) => (
+                                <span
+                                    key={index}
+                                    className={`block w-2 h-2 rounded-full transition-all duration-300 ${
+                                        index === currentImageIndex ? "bg-white" : "bg-white/50"
+                                    }`}
+                                ></span>
+                            ))}
+                        </div>
+                    )}
+                </>
+            ) : (
+                // Placeholder for shops with no image
+                <div className="w-full h-full flex items-center justify-center">
+                    <Store className="w-12 h-12 text-gray-300" />
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- Shop Info Modal Component (Glassmorphism Effect) ---
+const ShopInfoModal = ({ shop, onClose, onEdit }) => {
+    // Helper to render info rows
+    const InfoRow = ({ icon: Icon, label, value }) => (
+        <div className="flex items-start space-x-3 py-2 border-b border-gray-100 last:border-b-0">
+            <Icon className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+            <div>
+                <p className="text-sm font-medium text-gray-600">{label}</p>
+                <p className="text-gray-900 font-semibold">{value || "N/A"}</p>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-3xl shadow-2xl max-h-[90vh] overflow-hidden 
+                          bg-white/90 border border-white/50 transform transition-all duration-300 scale-100">
+                
+                {/* Image Slideshow (Header) */}
+                <ImageSlideshow 
+                    shopPhotos={shop.photos} 
+                    shopName={shop.name} 
+                    heightClass="h-56" // Taller image for the modal
+                />
+
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-14rem)]">
+                    <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-3xl font-extrabold text-gray-900">
+                            {shop.name}
+                        </h2>
+                        {/* Close Button */}
+                        <button
+                            onClick={onClose}
+                            className="p-2 text-gray-600 hover:text-gray-900 bg-white/50 backdrop-blur-sm rounded-full transition-colors"
+                        >
+                            <XIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {/* Edit Button */}
+                    <button
+                        onClick={() => {
+                            onClose(); // Close info modal
+                            onEdit(shop); // Open edit modal
+                        }}
+                        className="w-full py-2 mb-6 flex items-center justify-center space-x-2 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors text-base shadow-md"
+                    >
+                        <Edit className="w-5 h-5" />
+                        <span>Edit Shop Details</span>
+                    </button>
+                    
+                    {/* Information Grid */}
+                    <div className="divide-y divide-gray-100 border-t border-b border-gray-100">
+                        <InfoRow 
+                            icon={MapPin} 
+                            label="Address" 
+                            value={shop.address} 
+                        />
+                         <InfoRow 
+                            icon={Phone} 
+                            label="Phone Number" 
+                            value={shop.phone_number} 
+                        />
+                        <InfoRow 
+                            icon={MapPin} 
+                            label="State/Region" 
+                            value={shop.state} 
+                        />
+                        <InfoRow 
+                            icon={MapPin} 
+                            label="LGA" 
+                            value={shop.local_government_area} 
+                        />
+                        <InfoRow 
+                            icon={MapPin} 
+                            label="Latitude" 
+                            value={shop.latitude} 
+                        />
+                        <InfoRow 
+                            icon={MapPin} 
+                            label="Longitude" 
+                            value={shop.longitude} 
+                        />
+                        <InfoRow 
+                            icon={CheckCircle} 
+                            label="Date Created" 
+                            value={shop.date_created} 
+                        />
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Shop Management Component ---
+const ShopCard = ({ shop, onEdit, onView, rootBackEnd }) => {
   const shopPhotos = shop.photos || [];
   const hasPhotos = shopPhotos.length > 0;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -441,8 +606,10 @@ const ShopCard = ({ shop, onEdit, rootBackEnd }) => {
     : null;
 
   return (
-    <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 transition-all duration-200 hover:shadow-xl hover:border-gray-200">
-      {/* --- SLIDESHOW CONTAINER --- */}
+    <div 
+        className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 transition-all duration-200 hover:shadow-xl hover:border-gray-200 cursor-pointer"
+        onClick={() => onView(shop)} // New onView handler
+    >      {/* --- SLIDESHOW CONTAINER --- */}
       <div className="relative w-full h-40 rounded-lg mb-4 bg-gray-100 overflow-hidden">
         {hasPhotos ? (
           <>
@@ -1139,7 +1306,9 @@ const AgentDashboard = () => {
   const [shops, setShops] = useState([]);
   const [shopModalOpen, setShopModalOpen] = useState(false);
   const [currentShop, setCurrentShop] = useState(null);
-  const [isShopsLoading, setIsShopsLoading] = useState(true); // NEW: Loading state for shops
+  const [isShopsLoading, setIsShopsLoading] = useState(true); 
+
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const { user, logout, updateUser, fetchUserProfile } =
     useContext(AuthContext);
@@ -1274,6 +1443,16 @@ const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFil
     setShopModalOpen(true);
   };
 
+  const openInfoModal = (shop) => {
+      setCurrentShop(shop);
+      setShowInfoModal(true);
+  };
+  
+  const closeInfoModal = () => {
+      setCurrentShop(null);
+      setShowInfoModal(false);
+  };
+
   const renderView = () => {
     switch (view) {
       case "profile":
@@ -1291,6 +1470,7 @@ const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFil
             shops={shops}
             onAdd={openAddShopModal}
             onEdit={openEditShopModal}
+            onView={openInfoModal}
             isLoading={isShopsLoading} // Pass loading state
           />
         );
@@ -1306,7 +1486,7 @@ const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFil
   };
 
   // 4. UPDATED: Add loading state to ShopsManager
-  const ShopsManager = ({ shops, onAdd, onEdit, isLoading }) => (
+  const ShopsManager = ({ shops, onAdd, onEdit, onView, isLoading }) => (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Shop Management</h1>
@@ -1332,7 +1512,7 @@ const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFil
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {shops.map((shop) => (
             // Ensure your shop data from the API includes the fields used in ShopCard
-            <ShopCard key={shop.id} shop={shop} onEdit={onEdit} rootBackEnd={BACKEND_API_BASE_URL} />
+            <ShopCard key={shop.id} shop={shop} onEdit={onEdit} onView={onView} rootBackEnd={BACKEND_API_BASE_URL} />
           ))}
         </div>
       )}
@@ -1457,6 +1637,15 @@ const handleSaveShop = async (shopData, imageFiles = []) => { // Accept imageFil
             onClose={() => setShopModalOpen(false)}
             onSave={handleSaveShop}
           />
+        )}
+
+
+        {showInfoModal && currentShop && (
+            <ShopInfoModal
+                shop={currentShop}
+                onClose={closeInfoModal}
+                onEdit={openEditShopModal} // Passes shop data to the edit handler
+            />
         )}
       </div>
       {/* 🔒 Logout Confirmation Modal */}
