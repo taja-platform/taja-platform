@@ -95,31 +95,42 @@ class ShopSerializer(serializers.ModelSerializer):
 
 
     def update(self, instance, validated_data):
-            # 1. Handle new photo uploads
-            uploaded_photos_data = validated_data.pop("uploaded_photos", None)
-            
-            # 2. Handle photos to delete
-            photos_to_delete_ids = validated_data.pop("photos_to_delete_ids", [])
+        # 1. Handle new photo uploads
+        uploaded_photos_data = validated_data.pop("uploaded_photos", None)
+        
+        # 2. Handle photos to delete
+        photos_to_delete_ids_str = validated_data.pop("photos_to_delete_ids", "[]")
 
-            # Delete specified photos
-            if photos_to_delete_ids:
-                # Delete only photos belonging to this instance
-                ShopPhoto.objects.filter(shop=instance, id__in=photos_to_delete_ids).delete()
+        # --- START: CRITICAL FIX ---
+        # Manually parse the JSON string from FormData into a Python list
+        photos_to_delete_ids = []
+        if isinstance(photos_to_delete_ids_str, str):
+            try:
+                # This converts the string '[1, 2, 3]' into the list [1, 2, 3]
+                photos_to_delete_ids = json.loads(photos_to_delete_ids_str)
+            except json.JSONDecodeError:
+                # Handle potential errors if the string is not valid JSON
+                pass 
+        elif isinstance(photos_to_delete_ids_str, list):
+             # If it's already a list (e.g., from raw JSON API clients), use it directly
+             photos_to_delete_ids = photos_to_delete_ids_str
+        # --- END: CRITICAL FIX ---
 
+        # Delete specified photos using the correctly parsed list
+        if photos_to_delete_ids:
+            ShopPhoto.objects.filter(shop=instance, id__in=photos_to_delete_ids).delete()
 
-            # 3. Update shop details as before
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            instance.save()
+        # 3. Update shop details as before
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
 
-            # 4. Create new photos
-            if uploaded_photos_data:
-                # Create ShopPhoto objects for each uploaded file
-                for photo_file in uploaded_photos_data:
-                    ShopPhoto.objects.create(shop=instance, photo=photo_file)
+        # 4. Create new photos
+        if uploaded_photos_data:
+            for photo_file in uploaded_photos_data:
+                ShopPhoto.objects.create(shop=instance, photo=photo_file)
 
-            # 5. CRITICAL FIX: Reload the instance from the database 
-            #    to ensure the 'photos' relationship is refreshed and includes the new photo objects.
-            instance.refresh_from_db() #
+        # 5. Refresh instance
+        instance.refresh_from_db()
 
-            return instanc
+        return instance

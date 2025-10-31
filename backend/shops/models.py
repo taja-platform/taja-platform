@@ -3,7 +3,7 @@ from django.db import models
 from accounts.models import StoreOwner, Agent
 from PIL import Image
 from .validators import validate_image  # place validator in validators.py
-
+import os
 
 class Shop(models.Model):
     owner = models.ForeignKey(
@@ -59,12 +59,28 @@ class ShopPhoto(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         img_path = self.photo.path
-        img = Image.open(img_path)
+        
+        with Image.open(img_path) as img:
+            # --- START: Improved Image Processing Logic ---
+            img_format = img.format.upper() # Get original format (JPEG, PNG, etc.)
 
-        # Resize if too big
-        max_size = (800, 800)
-        img.thumbnail(max_size)
-        img.save(img_path, format="JPEG", quality=75, optimize=True)
+            # Handle PNG transparency
+            if img.mode in ('RGBA', 'LA'):
+                # Create a white background and paste the image onto it
+                background = Image.new(img.mode[:-1], img.size, (255, 255, 255))
+                background.paste(img, img.split()[-1])
+                img = background
+
+            # Resize if too big
+            max_size = (800, 800)
+            img.thumbnail(max_size)
+
+            # Save with appropriate format and options
+            if img_format == 'JPEG':
+                img.save(img_path, format='JPEG', quality=80, optimize=True)
+            else:
+                # Saves PNGs and other formats correctly
+                img.save(img_path, format=img_format)
 
     def __str__(self):
         return f"Photo for {self.shop.name}"
