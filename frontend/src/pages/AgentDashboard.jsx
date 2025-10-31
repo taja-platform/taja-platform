@@ -842,46 +842,33 @@ const ShopFormModal = ({ shop, onClose, onSave }) => {
             return;
         }
 
-        // --- API PAYLOAD CONSTRUCTION (CRITICAL UPDATE) ---
-        // Must use FormData for file uploads
         const data = new FormData();
 
-        // 1. Append all standard form fields
+        // 1. Append all standard form fields (this part is correct)
         Object.keys(formData).forEach(key => {
             const value = formData[key];
-            // Skip complex objects/arrays and null/undefined values
             if (value !== null && value !== undefined && typeof value !== 'object') {
                 data.append(key, value);
             }
         });
         
-        // 2. Handle deletions (only in edit mode)
+        // --- START: CRITICAL FIX ---
+        // 2. Handle deletions by appending each ID individually
         if (isEditing && deletedPhotoIds.length > 0) {
-            // Must JSON stringify the array for DRF to correctly parse ListField from FormData
-            data.append('photos_to_delete_ids', JSON.stringify(deletedPhotoIds));
+            deletedPhotoIds.forEach(id => {
+                // This sends the data as: photos_to_delete_ids=1&photos_to_delete_ids=2
+                data.append('photos_to_delete_ids', id);
+            });
         }
+        // --- END: CRITICAL FIX ---
 
-        // 3. Append new photo files
+        // 3. Append new photo files (this part is correct)
         newFiles.forEach(file => {
-            // 'uploaded_photos' MUST match the ListField name in your ShopSerializer
             data.append('uploaded_photos', file); 
         });
 
         setIsLoading(true);
-        
-        // Pass the FormData payload and the shop ID (if editing) to the parent function
         onSave(data, isEditing ? shop.id : null); 
-        
-        // NOTE: The `onSave` function in the parent component should now handle the actual API call 
-        // (POST for new shop, PUT/PATCH for edit shop) and manage setting `isLoading` back to false 
-        // and calling `onClose` upon success.
-        
-        // Mock success for development flow:
-        setTimeout(() => {
-             toast.success(`Shop ${isEditing ? "updated" : "added"} successfully!`);
-             setIsLoading(false);
-             onClose(); 
-         }, 1000);
     };
 
 
