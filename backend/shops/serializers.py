@@ -1,3 +1,4 @@
+import json
 from rest_framework import serializers
 from .models import Shop, ShopPhoto
 from accounts.models import StoreOwner # Import needed for Role check

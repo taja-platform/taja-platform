@@ -57,7 +57,7 @@ class User(AbstractUser):
         if not self.pk:  
             if self.is_superuser:
                 self.role = self.Role.DEVELOPER
-            else:
+            elif not self.role:
                 self.role = self.base_role
         return super().save(*args, **kwargs)
 
@@ -191,6 +191,6 @@ def create_agent_profile(sender, instance, created, **kwargs):
         AgentProfile.objects.create(user=instance)
 
 @receiver(post_save, sender=StoreOwner)
-def create_agent_profile(sender, instance, created, **kwargs):
+def create_store_owner_profile(sender, instance, created, **kwargs):
     if created and instance.role == instance.Role.STORE_OWNER:
         StoreOwnerProfile.objects.create(user=instance)

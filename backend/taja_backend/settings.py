@@ -74,8 +74,10 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True  # allows cookies/auth headers
 CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]
 
+
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    ALLOWED_HOSTS = ["*"]
 
 
 # Database
