@@ -14,13 +14,16 @@ djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 Faker==37.8.0
 frozenlist==1.8.0
+gunicorn==23.0.0
 idna==3.11
 multidict==6.7.0
 opencage==3.2.0
+packaging==25.0
 pillow==11.3.0
 propcache==0.4.1
 psycopg2-binary==2.9.10
 PyJWT==2.10.1
+python-decouple==3.8
 python-dotenv==1.1.1
 redis==7.0.1
 requests==2.32.5
@@ -29,4 +32,5 @@ tqdm==4.67.1
 typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0
+whitenoise==6.11.0
 yarl==1.22.0

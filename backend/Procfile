@@ -1,0 +1,1 @@
+web: gunicorn taja_backend.wsgi
