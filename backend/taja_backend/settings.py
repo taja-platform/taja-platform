@@ -89,6 +89,11 @@ if DEBUG:
         }
     }
 else:
+    ALLOWED_HOSTS = [
+        "taja-platform.onrender.com",  # your live Render app URL
+        "localhost",
+        "127.0.0.1"
+    ]
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
