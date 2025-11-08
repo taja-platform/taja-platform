@@ -53,9 +53,13 @@ class ShopViewSet(viewsets.ModelViewSet):
         Admins/Developers see all shops.
         """
         user = self.request.user
+        queryset = Shop.objects.all()
+
         if user.is_authenticated and user.role == user.Role.AGENT:
-            return Shop.objects.filter(created_by=user)
-        return Shop.objects.all()
+            queryset = queryset.filter(created_by=user)
+
+        # Order by newest first
+        return queryset.order_by('-date_created')
     
 class MyShopsView(views.APIView):
     """
@@ -64,7 +68,6 @@ class MyShopsView(views.APIView):
     permission_classes = [IsAuthenticated, IsAgent]
 
     def get(self, request, *args, **kwargs):
-        # Filter shops where created_by is the authenticated agent
-        shops = Shop.objects.filter(created_by=request.user)
+        shops = Shop.objects.filter(created_by=request.user).order_by('-date_created')
         serializer = ShopSerializer(shops, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
