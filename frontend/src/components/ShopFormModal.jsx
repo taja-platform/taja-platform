@@ -302,7 +302,7 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
           <Input
             id="address"
             name="address"
-            label="Full Address"
+            label="Address (Optional)"
             type="text"
             value={formData.address}
             onChange={handleChange}
@@ -310,7 +310,7 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
           <Input
             id="description"
             name="description"
-            label="Description (Optional)"
+            label="Note (Optional)"
             type="text"
             value={formData.description || ""}
             onChange={handleChange}

@@ -199,6 +199,7 @@ if DEBUG:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+
 # ---------------------------------------------------------------------
 # CACHE (Optional: You can remove if not using Redis)
 # ---------------------------------------------------------------------
