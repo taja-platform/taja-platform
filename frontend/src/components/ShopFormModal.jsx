@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Input } from "./utils/Input";
 import { Select } from "./utils/Select";
 import { CheckCircle, MapPin, Trash2, Upload, X } from "lucide-react";
+import { useCurrentLocation } from "../utils/getCurrentLocation";
 
 export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const isEditing = !!shop?.id;
@@ -94,37 +95,10 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const handleLocationPin = (lat, lng) => {
     setFormData((prev) => ({
       ...prev,
-      latitude: lat,
-      longitude: lng,
+      latitude: lat?.lat,
+      longitude: lat.lng,
     }));
     mockToast.info(`Location Pinned: Lat ${lat}, Lng ${lng}`);
-  };
-
-  const useCurrentLocation = () => {
-    setIsLoading(true);
-    mockToast.info("Requesting current location...");
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          handleLocationPin(
-            position.coords.latitude.toFixed(6),
-            position.coords.longitude.toFixed(6)
-          );
-          setIsLoading(false);
-        },
-        (error) => {
-          toast.error(
-            "Could not get location. Ensure permissions are granted."
-          );
-          console.error("Geolocation error:", error);
-          setIsLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    } else {
-      toast.error("Geolocation is not supported by this browser.");
-      setIsLoading(false);
-    }
   };
 
   const handleSubmit = (e) => {
@@ -157,6 +131,9 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
     setIsLoading(true);
     onSave(data, isEditing ? shop.id : null);
   };
+
+  const { getLocation, isLoading: locationLoading } =
+    useCurrentLocation(handleLocationPin);
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
@@ -203,37 +180,16 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={useCurrentLocation}
-                disabled={isLoading}
+                onClick={getLocation}
+                disabled={locationLoading || isLoading}
                 className="w-full py-3 flex items-center justify-center bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
-                {isLoading ? "Locating..." : "Use Current Location"}
+                {locationLoading ? "Locating..." : "Use Current Location"}
               </button>
-
-              <div className="text-center text-sm text-gray-500 py-2">
-                - OR -
-              </div>
-
-              <div
-                className="h-40 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors"
-                onClick={() =>
-                  handleLocationPin(
-                    (34.053 + Math.random() * 0.01).toFixed(4),
-                    (-118.243 - Math.random() * 0.01).toFixed(4)
-                  )
-                }
-              >
-                <p className="text-center">
-                  Click here to simulate selecting a new location from a map.
-                  <br />
-                  (Lat/Lng will be auto-filled)
-                </p>
-              </div>
             </div>
           </div>
           <div className="pt-3 border-t border-gray-100">
