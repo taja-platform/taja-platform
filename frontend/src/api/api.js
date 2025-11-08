@@ -1,13 +1,12 @@
 // src/api/api.js
 import axios from "axios";
 
-const API_BASE = import.meta.env.API_BASE_URL || "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
 const api = axios.create({
   baseURL: API_BASE,
 });
 
-console.log(import.meta.env);
 
 
 // Automatically add access token
@@ -34,7 +33,7 @@ api.interceptors.response.use(
 
       if (refresh) {
         try {
-          const res = await axios.post(`${API_BASE}token/refresh/`, { refresh });
+          const res = await axios.post(`${API_BASE}/auth/refresh/`, { refresh });
           localStorage.setItem("access", res.data.access);
           originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
           return api(originalRequest);
