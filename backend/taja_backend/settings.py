@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from decouple import config
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -13,6 +14,8 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 # ---------------------------------------------------------------------
 
 SECRET_KEY = config("SECRET_KEY", default="unsafe-secret-key")
+# OpenCage Geocoding API Key
+OPENCAGE_API_KEY = config("OPENCAGE_API_KEY", default=None)
 
 DEBUG = config("DEBUG", default=False, cast=bool)
 
@@ -36,6 +39,8 @@ INSTALLED_APPS = [
     "accounts",
     "shops",
     "rest_framework",
+    "cloudinary",
+    "cloudinary_storage",
 ]
 
 MIDDLEWARE = [
@@ -103,7 +108,7 @@ else:
 
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000",
+    default="http://localhost:5050,http://127.0.0.1:5050",
 ).split(",")
 
 CORS_ALLOW_CREDENTIALS = True
@@ -125,7 +130,30 @@ CORS_ALLOW_HEADERS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://taja-platform.onrender.com",
+    *config("CORS_ALLOWED_ORIGINS", default="").split(","),
 ]
+
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
+# ---------------------------------------------------------------------
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": config("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": config("CLOUDINARY_API_KEY"),
+    "API_SECRET": config("CLOUDINARY_API_SECRET"),
+}
+
+
+if DEBUG:
+    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+else:
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
 
 # ---------------------------------------------------------------------
 # AUTH / REST

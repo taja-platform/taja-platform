@@ -1,0 +1,130 @@
+import requests
+import sys
+
+# --- Configuration ---
+# REPLACE 'YOUR_OPENCAGE_API_KEY' with your actual key
+OPENCAGE_API_KEY = "2341c6e3d6af4008ab84de410b125e5f" 
+BASE_URL = "https://api.opencagedata.com/geocode/v1/json"
+
+def get_coordinates():
+    """
+    Prompts the user to enter latitude and longitude, with validation.
+    """
+    print("--- OpenCage Reverse Geocoding Tool ---")
+    
+    # Check for API Key placeholder
+    if OPENCAGE_API_KEY == "YOUR_OPENCAGE_API_KEY":
+        print("\n**ERROR:** Please replace 'YOUR_OPENCAGE_API_KEY' in the script with your actual key.")
+        sys.exit(1)
+
+    try:
+        print("\nEnter your current location coordinates.")
+        lat_input = input("Enter Latitude (e.g., 9.0765): ").strip()
+        lon_input = input("Enter Longitude (e.g., 7.3986): ").strip()
+
+        if not lat_input or not lon_input:
+            print("\nLatitude and Longitude cannot be empty.")
+            sys.exit(1)
+
+        latitude = float(lat_input)
+        longitude = float(lon_input)
+        
+        return latitude, longitude
+
+    except ValueError:
+        print("\nInvalid input. Please enter valid numbers for Latitude and Longitude.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nAn unexpected error occurred during input: {e}")
+        sys.exit(1)
+
+
+def reverse_geocode_location(lat, lon):
+    """
+    Performs reverse geocoding using the OpenCage API.
+    """
+    print(f"\nSearching for location: ({lat}, {lon})...")
+    
+    # Construct the API request parameters
+    params = {
+        'q': f"{lat},{lon}",
+        'key': OPENCAGE_API_KEY,
+        'pretty': 1,              # For readable JSON output (not essential for script, but useful for debugging)
+        'no_annotations': 0       # Request all annotations, which contain administrative data
+    }
+    
+    try:
+        response = requests.get(BASE_URL, params=params)
+        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+        data = response.json()
+
+        if not data['results']:
+            print("Location not found for these coordinates.")
+            return None
+
+        # OpenCage returns highly structured components
+        components = data['results'][0]['components']
+        
+        # --- Extract Administrative Data ---
+        
+        # State/Region (Often administrative level 4/3 in ISO codes)
+        state_or_region = (
+            components.get('state') or
+            components.get('province') or
+            components.get('region')
+        )
+        
+        # Local Government Area / County / District
+        # We check common keys that OpenCage uses for this level.
+        lga_or_district = (
+            components.get('city_district') or
+            components.get('county') or
+            components.get('state_district') or
+            components.get('local_administrative_area')
+        )
+        
+        country = components.get('country', 'N/A')
+        full_address = data['results'][0]['formatted']
+        
+        return {
+            "latitude": lat,
+            "longitude": lon,
+            "Country": country,
+            "State_Region": state_or_region if state_or_region else "Not Found (Level 4/3)",
+            "LGA_District": lga_or_district if lga_or_district else "Not Found (Level 6/7)",
+            "Full_Address": full_address
+        }
+
+    except requests.exceptions.HTTPError as err:
+        print(f"\nHTTP Error: {err}")
+        print("Check if your API key is correct and if you've exceeded your daily free limit.")
+    except requests.exceptions.RequestException as e:
+        print(f"\nAn error occurred while connecting to the API: {e}")
+    except Exception as e:
+        print(f"\nAn unexpected error occurred: {e}")
+        
+    return None
+
+def main():
+    """
+    Main execution function.
+    """
+    lat, lon = get_coordinates()
+    
+    # Only proceed if the API key is not the placeholder
+    if OPENCAGE_API_KEY != "YOUR_OPENCAGE_API_KEY":
+        result = reverse_geocode_location(lat, lon)
+        
+        if result:
+            print("\n" + "="*40)
+            print("🗺️ Reverse Geocoding Results (OpenCage)")
+            print("="*40)
+            print(f"**Coordinates:** {result['latitude']}, {result['longitude']}")
+            print(f"**Country:** {result['Country']}")
+            print(f"**State/Region:** {result['State_Region']}")
+            print(f"**LGA/District:** {result['LGA_District']}")
+            print(f"\n**Full Address:**\n{result['Full_Address']}")
+            print("="*40)
+
+if __name__ == "__main__":
+    main()

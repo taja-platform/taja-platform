@@ -2,6 +2,7 @@ import json
 from rest_framework import serializers
 from .models import Shop, ShopPhoto
 from accounts.models import StoreOwner # Import needed for Role check
+from .services import get_location_details
 
 
 class ShopPhotoSerializer(serializers.ModelSerializer):
@@ -81,10 +82,24 @@ class ShopSerializer(serializers.ModelSerializer):
                 # Allow Admin/Developer to update is_active status
                 self.fields['is_active'].read_only = False 
 
+    def _geocode_and_update(self, validated_data):
+            """Helper to geocode and add location details to validated_data."""
+            latitude = validated_data.get("latitude")
+            longitude = validated_data.get("longitude")
+            
+            if latitude and longitude:
+                location_details = get_location_details(latitude, longitude)
+                # Update the validated data with geocoded results
+                validated_data['state'] = location_details.get('state')
+                validated_data['local_government_area'] = location_details.get('local_government_area')
+
     def create(self, validated_data):
         # Pop the uploaded photos data, it's not a direct Shop model field
         uploaded_photos_data = validated_data.pop("uploaded_photos", [])
         
+        self._geocode_and_update(validated_data)
+
+
         # Create the shop instance first
         shop = Shop.objects.create(**validated_data)
 
