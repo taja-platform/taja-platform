@@ -195,8 +195,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # Let WhiteNoise serve static files efficiently
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+if DEBUG:
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # ---------------------------------------------------------------------
 # CACHE (Optional: You can remove if not using Redis)
