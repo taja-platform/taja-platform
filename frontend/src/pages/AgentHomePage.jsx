@@ -7,6 +7,8 @@ import {
   LogOut,
   MapPin,
   MenuIcon,
+  Plus,
+  StoreIcon,
   User,
   X,
 } from "lucide-react";
@@ -185,19 +187,45 @@ export default function AgentHomePage() {
           </div>
         </aside>
 
-        <main className="flex-grow p-4 md:p-8 pt-20 md:pt-8 md:ml-64 transition-all duration-300">
-          <div className="py-10 px-4 flex flex-col items-center justify-center">
-            <h1 className="text-3xl font-semibold text-gray-900 mb-6 text-center md:text-left md:self-start">
-              Agent Home Page
-            </h1>
+        <main className="flex-grow p-4 md:p-8 pt-20 md:pt-8 md:ml-64 transition-all duration-300 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+          <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+            <div className="text-center">
+              {/* Icon */}
+              <div className="mb-8 flex justify-center">
+                <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center shadow-lg">
+                  <StoreIcon className="w-10 h-10 text-white" />
+                </div>
+              </div>
 
-            {/* Add Shop Button */}
-            <button
-              onClick={() => setShowAddShopModal(true)}
-              className="px-8 py-4 bg-indigo-600 text-white font-semibold text-lg rounded-full shadow-lg transform transition-all duration-300 hover:bg-indigo-700 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-400 focus:ring-opacity-50"
-            >
-              Add New Shop
-            </button>
+              {/* Title */}
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Welcome, Agent
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-gray-600 text-lg md:text-xl mb-10 max-w-md mx-auto">
+                Get started by adding your first shop
+              </p>
+
+              {/* Button */}
+              <button
+                onClick={() => setShowAddShopModal(true)}
+                className="px-10 py-5 bg-gray-900 text-white font-semibold text-lg rounded-full shadow-xl transform transition-all duration-300 hover:bg-gray-800 hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-gray-400 focus:ring-opacity-50 inline-flex items-center gap-3"
+              >
+                <Plus className="w-6 h-6" />
+                Add New Shop
+              </button>
+
+              {/* Minimal hint text */}
+              <p className="text-gray-400 text-sm mt-8">
+                Your shops will appear here once added
+              </p>
+            </div>
+          </div>
+
+          {/* Decorative elements */}
+          <div className="fixed bottom-8 right-8 opacity-5 pointer-events-none">
+            <StoreIcon className="w-64 h-64 text-gray-900" />
           </div>
 
           {showAddShopModal && (
