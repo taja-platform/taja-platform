@@ -36,7 +36,6 @@ export default function AgentHomePage() {
   };
 
   const handleSaveShop = async (formDataPayload, shopId = null) => {
-    setShowAddShopModal(false);
     const isUpdating = !!shopId;
 
     try {
@@ -61,6 +60,7 @@ export default function AgentHomePage() {
 
       toast.error(errorMessage);
     }
+    setShowAddShopModal(false);
   };
 
   const LayoutDashboard = (props) => (

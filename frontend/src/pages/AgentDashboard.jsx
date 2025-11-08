@@ -448,7 +448,6 @@ const AgentDashboard = () => {
   };
 
   const handleSaveShop = async (formDataPayload, shopId = null) => {
-    setShopModalOpen(false);
     setCurrentShop(null);
 
     const isUpdating = !!shopId;
@@ -476,6 +475,7 @@ const AgentDashboard = () => {
 
       toast.error(errorMessage);
     }
+    setShopModalOpen(false);
   };
 
   const openAddShopModal = () => {
