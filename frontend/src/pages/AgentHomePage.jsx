@@ -36,7 +36,6 @@ export default function AgentHomePage() {
   };
 
   const handleSaveShop = async (formDataPayload, shopId = null) => {
-    setShowAddShopModal(false);
     const isUpdating = !!shopId;
 
     try {
@@ -61,6 +60,7 @@ export default function AgentHomePage() {
 
       toast.error(errorMessage);
     }
+    setShowAddShopModal(false);
   };
 
   const LayoutDashboard = (props) => (
@@ -199,7 +199,8 @@ export default function AgentHomePage() {
 
               {/* Title */}
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                Welcome, Agent
+                Welcome, Agent{" "}
+                {user?.user?.first_name || user?.username || "User"}!
               </h1>
 
               {/* Subtitle */}

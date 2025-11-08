@@ -20,7 +20,7 @@ import AgentHomePage from "./pages/AgentHomePage";
 function App() {
   return (
     <>
-      <Toaster position="top-right" richColors />
+      <Toaster position="bottom-right" richColors />
 
       <Routes>
         {/* Public route */}
