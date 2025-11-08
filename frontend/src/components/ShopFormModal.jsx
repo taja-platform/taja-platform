@@ -32,8 +32,6 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(null);
 
-  const lgaOptions = STATE_LGA_MAP[formData.state] || [];
-
   const totalCurrentPhotos = useMemo(() => {
     const originalPhotoCount = shop?.photos?.length || 0;
     const photosToKeep = originalPhotoCount - deletedPhotoIds.length;
