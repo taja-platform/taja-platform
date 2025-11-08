@@ -1,13 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="TAJA Platform - A next-gen platform for managing businesses and shops. Efficient, reliable, and mobile-friendly." />
+  <meta name="author" content="TAJA Team" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#1E3A8A" />
+  <meta property="og:title" content="TAJA Platform" />
+  <meta property="og:description"
+    content="TAJA Platform - A next-gen platform for managing businesses and shops. Efficient, reliable, and mobile-friendly." />
+  <meta property="og:image" content="/images/og-image.png" />
+  <meta property="og:url" content="https://www.taja.com" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TAJA Platform" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@TajaPlatform" />
+  <meta name="twitter:title" content="TAJA Platform" />
+  <meta name="twitter:description"
+    content="TAJA Platform - A next-gen platform for managing businesses and shops. Efficient, reliable, and mobile-friendly." />
+  <meta name="twitter:image" content="/images/twitter-image.png" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>TAJA Platform</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker registered', reg);
+      }).catch(err => {
+        console.error('Service Worker registration failed', err);
+      });
+    }
+  </script>
+</body>
+
 </html>
