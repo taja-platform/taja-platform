@@ -7,7 +7,7 @@ const api = axios.create({
   baseURL: API_BASE,
 });
 
-console.log(import.meta.env.VITE_API_BASE_URL);
+console.log(import.meta.env);
 
 
 // Automatically add access token
