@@ -37,6 +37,7 @@ api.interceptors.response.use(
           return api(originalRequest);
         } catch (err) {
           console.error("Token refresh failed, logging out...");
+          console.error(err)
           localStorage.clear();
           window.location.href = "/login";
         }

@@ -1,11 +1,11 @@
 // src/pages/HomePage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import StatCard from "../components/specifics/StatCard";
 import { UsersIcon, BuildingStorefrontIcon } from "@heroicons/react/24/outline";
-import api from "../api/api";
+import StatCard from "../../components/specifics/StatCard";
+import api from "../../api/api";
 
-export default function HomePage() {
+export default function AdminDashboard() {
   const [agentCount, setAgentCount] = useState(0);
   const [shopCount, setShopCount] = useState(0); // If you want to make this dynamic later
   const navigate = useNavigate();

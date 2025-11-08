@@ -12,8 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function Header({ sidebarOpen, onToggleSidebar }) {
-  const { user, logout, updateUser, fetchUserProfile } =
-    useContext(AuthContext);
+  const { user, logout, updateUser } = useContext(AuthContext);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -53,7 +52,6 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
 
       // Option 2: if it returns nothing or partial
       // await fetchUserProfile();
-      
     } catch (err) {
       toast.error("Failed to update profile.");
       console.error(err);
