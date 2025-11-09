@@ -7,7 +7,7 @@ import api from "../api/api";
 
 export default function HomePage() {
   const [agentCount, setAgentCount] = useState(0);
-  const [shopCount, setShopCount] = useState(0); // If you want to make this dynamic later
+  const [shopCount, setShopCount] = useState(0); 
   const navigate = useNavigate();
 
   // Fetch agents count
@@ -15,7 +15,8 @@ export default function HomePage() {
     const fetchAgents = async () => {
       try {
         const res = await api.get("/accounts/agents/");
-        setAgentCount(res.data.length); // assuming your endpoint returns a list of agents
+        // Use optional chaining just in case for safer access if the endpoint response is inconsistent
+        setAgentCount(res.data?.length ?? 0); 
       } catch (err) {
         console.error("Failed to fetch agents count:", err);
       }
@@ -28,7 +29,7 @@ export default function HomePage() {
     const fetchShops = async () => {
       try {
         const res = await api.get("/shops/");
-        setShopCount(res.data.length); // assuming your endpoint returns a list of shops
+        setShopCount(res.data?.length ?? 0); 
       } catch (err) {
         console.error("Failed to fetch shops count:", err);
       }
@@ -38,87 +39,109 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+    // P-4 is a good default for mobile, then p-6 for desktop
+    <div className="p-4 md:p-6"> 
+      <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-6">
         🚀 Dashboard Overview
       </h2>
 
-      {/* 1. HERO SECTION: Animated Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Shops (using a more advanced StatCard that supports radial progress) */}
+      {/* 1. HERO SECTION: Stat Cards Grid */}
+      {/* Changed to sm:grid-cols-2 to utilize smaller screen width better, 
+          and kept lg:grid-cols-4 for full desktop width */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        {/* Total Shops Card */}
         <div
           onClick={() => navigate("/agents")}
-          className="cursor-pointer transition-transform hover:scale-[1.02]"
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg rounded-2xl"
         >
-          {/* Total Agents */}
           <StatCard
             title="Total Shops"
             value={shopCount.toLocaleString()}
             icon={BuildingStorefrontIcon}
-            // Custom prop for animation logic (e.g., growth percentage)
             growthRate={12}
           />
         </div>
 
+        {/* Total Agents Card */}
         <div
           onClick={() => navigate("/agents")}
-          className="cursor-pointer transition-transform hover:scale-[1.02]"
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg rounded-2xl"
         >
-          {/* Total Agents */}
           <StatCard
             title="Total Agents"
             value={agentCount.toLocaleString()}
             icon={UsersIcon}
-            growthRate={-3} // Example: a negative growth rate
+            growthRate={-3}
           />
         </div>
+        
+        {/* Placeholder cards for consistent layout demonstration */}
+        <div className="hidden sm:block"> {/* Hide placeholders on smaller mobile devices */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 h-full flex items-center justify-center text-sm text-gray-400">
+                Onboarding Rate Chart
+            </div>
+        </div>
+        <div className="hidden lg:block"> {/* Only show this placeholder on larger screens */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 h-full flex items-center justify-center text-sm text-gray-400">
+                New Shops Line Chart
+            </div>
+        </div>
 
-        {/* NEW: Onboarding Success Rate */}
-        {/* <ShopGrowthRadialChart />  */}
-
-        {/* NEW: New Shops (Wavy Line Chart Preview) */}
-        {/* <NewShopsLineChartPreview />  */}
       </div>
 
       {/* 2. CORE VISUALIZATIONS SECTION */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map Visualization (Occupies 2/3 of the row) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200">
-          <h3 className="font-semibold mb-4 text-gray-800">
+      {/* Use grid-cols-1 for mobile, then lg:grid-cols-3 for desktop layout */}
+      <div className="mt-6 md:mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Map Visualization (Occupies 2/3 of the row on large screens) */}
+        {/* Added a minimum height h-64 to prevent it from collapsing on mobile */}
+        <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-2xl border border-gray-200 h-64 lg:h-96">
+          <h3 className="font-semibold mb-4 text-gray-800 text-lg">
             Shop Density by State 🌍
           </h3>
-          {/* Component for the Interactive Choropleth Map */}
-          {/* <ShopDensityMap />  */}
+          <div className="text-gray-400">
+            {/* <ShopDensityMap /> */}
+            [Map Placeholder]
+          </div>
         </div>
 
-        {/* Top 10 Bar Chart (Occupies 1/3 of the row) */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200">
-          <h3 className="font-semibold mb-4 text-gray-800">
+        {/* Top 10 Bar Chart (Occupies 1/3 of the row on large screens) */}
+        {/* Added a minimum height h-64 to prevent it from collapsing on mobile */}
+        <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 h-64 lg:h-96">
+          <h3 className="font-semibold mb-4 text-gray-800 text-lg">
             Top Performing States
           </h3>
-          {/* Component for the Animated Bar Chart (e.g., Liquid Fill bars) */}
-          {/* <TopStatesBarChart /> */}
+          <div className="text-gray-400">
+            {/* <TopStatesBarChart /> */}
+            [Bar Chart Placeholder]
+          </div>
         </div>
       </div>
 
       {/* 3. PERFORMANCE SECTION */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Use grid-cols-1 for mobile, then lg:grid-cols-2 for desktop layout */}
+      <div className="mt-6 md:mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Agent Performance Scatter Plot */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 h-96">
-          <h3 className="font-semibold mb-4 text-gray-800">
+        {/* Added a consistent height h-80 for mobile and desktop for visual balance */}
+        <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 h-80">
+          <h3 className="font-semibold mb-4 text-gray-800 text-lg">
             Agent Performance Snapshot 🎯
           </h3>
-          {/* Component for the Bubble/Scatter Chart */}
-          {/* <AgentPerformanceBubbleChart /> */}
+          <div className="text-gray-400">
+            {/* <AgentPerformanceBubbleChart /> */}
+            [Scatter Plot Placeholder]
+          </div>
         </div>
 
         {/* Shop Status Distribution */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 h-96">
-          <h3 className="font-semibold mb-4 text-gray-800">
-            Shop Status Distribution (Active/Inactive)
+        {/* Added a consistent height h-80 for mobile and desktop for visual balance */}
+        <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 h-80">
+          <h3 className="font-semibold mb-4 text-gray-800 text-lg">
+            Shop Status Distribution
           </h3>
-          {/* Component for the Dynamic Donut Chart */}
-          {/* <ShopStatusDonutChart /> */}
+          <div className="text-gray-400">
+            {/* <ShopStatusDonutChart /> */}
+            [Donut Chart Placeholder]
+          </div>
         </div>
       </div>
     </div>
