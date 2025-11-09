@@ -1,3 +1,4 @@
+// src/App.jsx
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 
@@ -12,10 +13,17 @@ import ShopsPage from "./pages/ShopsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AgentDashboard from "./pages/AgentDashboard";
 
+
+
 // Auth
+
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AgentHomePage from "./pages/AgentHomePage";
+import RoleBasedRedirect from "./components/auth/RoleBasedRedirect";
+
+
+
 
 function App() {
   return (
@@ -28,16 +36,22 @@ function App() {
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
+
+          <Route path="/" element={<RoleBasedRedirect />} /> 
+          
+          {/* Admin Routes */}
           <Route path="/admin" element={<DashboardLayout />}>
             <Route index element={<AdminDashboard />} />
-            {/* <Route path="settings" element={<DashboardSettings />} />
-            <Route path="profile" element={<DashboardProfile />} /> */}
           </Route>
+          
+          {/* General Dashboard Routes */}
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<HomePage />} />
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/shops" element={<ShopsPage />} />
           </Route>
+          
+          {/* Agent Routes */}
           <Route path="/agent" element={<AgentHomePage />} />
           <Route path="/agent/analytics" element={<AgentDashboard />} />
         </Route>
