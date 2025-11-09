@@ -1,12 +1,19 @@
 // src/pages/AgentsPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../api/api";
 import { toast } from "sonner";
-import { X, User, Mail, Phone, MapPin, Map } from "lucide-react"; // Assuming Lucide React for icons; install if needed: npm i lucide-react
+import { X, User, Mail, Phone, MapPin, Map, Search, Clock } from "lucide-react";
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // --- Filter States ---
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'inactive'
+  const [dateFilter, setDateFilter] = useState("all"); // 'all', 'recent', 'last7days'
+  // --- End Filter States ---
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -24,7 +31,18 @@ export default function AgentsPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const states = ['Lagos', 'Abuja', 'Kano', 'Rivers', 'Oyo', 'Kaduna', 'Enugu', 'Plateau', 'Delta', 'Imo'];
+  const states = [
+    "Lagos",
+    "Abuja",
+    "Kano",
+    "Rivers",
+    "Oyo",
+    "Kaduna",
+    "Enugu",
+    "Plateau",
+    "Delta",
+    "Imo",
+  ];
 
   // Fetch agents from backend
   const fetchAgents = async () => {
@@ -57,7 +75,6 @@ export default function AgentsPage() {
     });
     setIsEditModalOpen(true);
   };
-
 
   const handleUpdateAgent = async (e) => {
     e.preventDefault();
@@ -167,6 +184,58 @@ export default function AgentsPage() {
     fetchAgents();
   }, []);
 
+  // --- Filtering Logic (useMemo for performance) ---
+  const filteredAgents = useMemo(() => {
+    let currentAgents = agents;
+
+    // 1. Filter by Status (Active/Inactive)
+    if (statusFilter !== "all") {
+      const isActive = statusFilter === "active";
+      currentAgents = currentAgents.filter(
+        (agent) => agent.is_active === isActive
+      );
+    }
+
+    // 2. Filter by Name/Email/ID (Search Term)
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      currentAgents = currentAgents.filter((agent) => {
+        const fullName = `${agent.user?.first_name} ${agent.user?.last_name}`.toLowerCase();
+        const email = agent.user?.email.toLowerCase();
+        const agentId = agent.agent_id.toLowerCase();
+
+        return (
+          fullName.includes(lowerCaseSearchTerm) ||
+          email.includes(lowerCaseSearchTerm) ||
+          agentId.includes(lowerCaseSearchTerm)
+        );
+      });
+    }
+
+    // 3. Filter by Date (data_created)
+    if (dateFilter !== "all") {
+      const now = new Date();
+      const oneDay = 24 * 60 * 60 * 1000;
+      let filterDate = new Date(0); // Default to past date
+
+      if (dateFilter === "recent") {
+        // "Recent" will be defined as the last 24 hours
+        filterDate = new Date(now.getTime() - oneDay);
+      } else if (dateFilter === "last7days") {
+        // "Last 7 Days"
+        filterDate = new Date(now.getTime() - 7 * oneDay);
+      }
+
+      currentAgents = currentAgents.filter((agent) => {
+        const createdDate = new Date(agent.data_created);
+        return createdDate >= filterDate;
+      });
+    }
+
+    return currentAgents;
+  }, [agents, searchTerm, statusFilter, dateFilter]);
+  // --- End Filtering Logic ---
+
   return (
     <>
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -195,11 +264,74 @@ export default function AgentsPage() {
           </button>
         </div>
 
+        {/* ⭐️ Filter Controls Section */}
+        <div className="mb-6 p-4 border border-gray-100 rounded-xl bg-gray-50 flex flex-wrap gap-4 items-center">
+          {/* Search by Name/Email/ID */}
+          <div className="relative flex-grow min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by Name, Email, or ID"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900 text-sm"
+            />
+          </div>
+
+          {/* Filter by Status (Active/Inactive) */}
+          <div className="flex items-center space-x-2">
+            <User className="w-4 h-4 text-gray-500" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-gray-900 focus:border-gray-900"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          {/* Filter by Date Created */}
+          <div className="flex items-center space-x-2">
+            <Clock className="w-4 h-4 text-gray-500" />
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-gray-900 focus:border-gray-900"
+            >
+              <option value="all">All Dates</option>
+              <option value="recent">Recent (Last 24h)</option>
+              <option value="last7days">Last 7 Days</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(searchTerm || statusFilter !== "all" || dateFilter !== "all") && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setDateFilter("all");
+              }}
+              className="flex items-center space-x-1 text-sm text-red-600 hover:text-red-800 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              <span>Clear Filters</span>
+            </button>
+          )}
+        </div>
+        {/* ⭐️ End Filter Controls Section */}
+
         {/* Loading State */}
         {loading ? (
           <p className="text-gray-500 text-sm">Loading agents...</p>
-        ) : agents.length === 0 ? (
-          <p className="text-gray-500 text-sm">No agents found.</p>
+        ) : filteredAgents.length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            {agents.length > 0
+              ? "No agents match the current filter criteria."
+              : "No agents found."}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -227,7 +359,8 @@ export default function AgentsPage() {
               </thead>
 
               <tbody className="bg-white divide-y divide-gray-200">
-                {agents.map((agent) => (
+                {/* ⭐️ Use filteredAgents instead of agents */}
+                {filteredAgents.map((agent) => (
                   <tr key={agent.agent_id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {agent.agent_id}

@@ -2,8 +2,9 @@
 from django.db import models
 from accounts.models import StoreOwner, Agent
 from PIL import Image
-from .validators import validate_image  # place validator in validators.py
-import os
+from .validators import validate_image 
+from cloudinary.models import CloudinaryField
+
 
 class Shop(models.Model):
     owner = models.ForeignKey(
@@ -51,36 +52,12 @@ class ShopPhoto(models.Model):
         on_delete=models.CASCADE,
         related_name="photos"
     )
-    photo = models.ImageField(
-        upload_to="shop_photos/",
+    photo = CloudinaryField(
+        "image",
+        folder="shop_photos",
         validators=[validate_image]
     )
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        img_path = self.photo.path
-        
-        with Image.open(img_path) as img:
-            # --- START: Improved Image Processing Logic ---
-            img_format = img.format.upper() # Get original format (JPEG, PNG, etc.)
-
-            # Handle PNG transparency
-            if img.mode in ('RGBA', 'LA'):
-                # Create a white background and paste the image onto it
-                background = Image.new(img.mode[:-1], img.size, (255, 255, 255))
-                background.paste(img, img.split()[-1])
-                img = background
-
-            # Resize if too big
-            max_size = (800, 800)
-            img.thumbnail(max_size)
-
-            # Save with appropriate format and options
-            if img_format == 'JPEG':
-                img.save(img_path, format='JPEG', quality=80, optimize=True)
-            else:
-                # Saves PNGs and other formats correctly
-                img.save(img_path, format=img_format)
 
     def __str__(self):
         return f"Photo for {self.shop.name}"
