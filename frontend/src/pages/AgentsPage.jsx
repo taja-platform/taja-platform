@@ -131,7 +131,6 @@ export default function AgentsPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ⭐️ RENAMED: This is now the handleAddAgent function
   const handleAddAgent = async (e) => {
     e.preventDefault();
     if (
@@ -260,53 +259,53 @@ export default function AgentsPage() {
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <span>+ Add Agent</span>
+            <span>Add Agent</span>
           </button>
         </div>
 
         {/* ⭐️ Filter Controls Section */}
-        <div className="mb-6 p-4 border border-gray-100 rounded-xl bg-gray-50 flex flex-wrap gap-4 items-center">
-          {/* Search by Name/Email/ID */}
-          <div className="relative flex-grow min-w-[200px] max-w-sm">
+        <div className="mb-6 p-4 border border-gray-100 rounded-xl bg-gray-50 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center">
+          {/* Search */}
+          <div className="relative flex-grow min-w-[180px] sm:min-w-[220px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by Name, Email, or ID"
+              placeholder="Search by name, email, or ID"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900 text-sm"
+              className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900"
             />
           </div>
 
-          {/* Filter by Status (Active/Inactive) */}
-          <div className="flex items-center space-x-2">
-            <User className="w-4 h-4 text-gray-500" />
+          {/* Status */}
+          <div className="flex items-center space-x-2 flex-grow sm:flex-grow-0">
+            <User className="w-4 h-4 text-gray-500 hidden sm:block" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-gray-900 focus:border-gray-900"
+              className="w-full sm:w-auto py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-gray-900 focus:border-gray-900"
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
 
-          {/* Filter by Date Created */}
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-gray-500" />
+          {/* Date */}
+          <div className="flex items-center space-x-2 flex-grow sm:flex-grow-0">
+            <Clock className="w-4 h-4 text-gray-500 hidden sm:block" />
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-gray-900 focus:border-gray-900"
+              className="w-full sm:w-auto py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-gray-900 focus:border-gray-900"
             >
               <option value="all">All Dates</option>
-              <option value="recent">Recent (Last 24h)</option>
+              <option value="recent">Recent (24h)</option>
               <option value="last7days">Last 7 Days</option>
             </select>
           </div>
 
-          {/* Clear Filters Button */}
+          {/* Clear Button */}
           {(searchTerm || statusFilter !== "all" || dateFilter !== "all") && (
             <button
               onClick={() => {
@@ -314,10 +313,10 @@ export default function AgentsPage() {
                 setStatusFilter("all");
                 setDateFilter("all");
               }}
-              className="flex items-center space-x-1 text-sm text-red-600 hover:text-red-800 transition-colors"
+              className="flex items-center justify-center space-x-1 text-sm text-red-600 hover:text-red-800 mt-2 sm:mt-0"
             >
               <X className="w-4 h-4" />
-              <span>Clear Filters</span>
+              <span>Clear</span>
             </button>
           )}
         </div>
@@ -325,7 +324,10 @@ export default function AgentsPage() {
 
         {/* Loading State */}
         {loading ? (
-          <p className="text-gray-500 text-sm">Loading agents...</p>
+          <div className="flex flex-col items-center justify-center py-10">
+            <div className="w-10 h-10 border-4 border-gray-300 border-t-gray-900 rounded-full animate-[spin_0.5s_linear_infinite] mb-3"></div>
+            <p className="text-gray-600 text-sm font-medium">Loading agents...</p>
+          </div>
         ) : filteredAgents.length === 0 ? (
           <p className="text-gray-500 text-sm">
             {agents.length > 0
@@ -333,72 +335,50 @@ export default function AgentsPage() {
               : "No agents found."}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto rounded-lg border border-gray-100">
+            <table className="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
+              <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    state
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-600 uppercase tracking-wider">ID</th>
+                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Name</th>
+                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Phone</th>
+                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-600 uppercase tracking-wider hidden md:table-cell">State</th>
+                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-600 uppercase tracking-wider hidden sm:table-cell">Status</th>
+                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* ⭐️ Use filteredAgents instead of agents */}
+              <tbody className="bg-white divide-y divide-gray-100">
                 {filteredAgents.map((agent) => (
-                  <tr key={agent.agent_id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {agent.agent_id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  <tr key={agent.agent_id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 whitespace-nowrap">{agent.agent_id}</td>
+                    <td className="px-4 sm:px-6 py-3 text-gray-700 whitespace-nowrap">
                       {agent.user?.first_name} {agent.user?.last_name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {agent.phone_number || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {agent.state || "—"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-4 sm:px-6 py-3 text-gray-700 whitespace-nowrap">{agent.phone_number || "N/A"}</td>
+                    <td className="px-4 sm:px-6 py-3 text-gray-700 whitespace-nowrap hidden md:table-cell">{agent.state || "—"}</td>
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap hidden sm:table-cell">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          agent.is_active
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                        className={`px-2 inline-flex text-xs sm:text-sm font-semibold rounded-full ${
+                          agent.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                         }`}
                       >
                         {agent.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <td className="px-4 sm:px-6 py-3 space-x-2">
                       <button
                         onClick={() => handleViewAgent(agent)}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-gray-600 hover:text-gray-900 text-sm sm:text-base"
                       >
                         View
                       </button>
                       <button
                         onClick={() => handleEditAgent(agent)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-blue-600 hover:text-blue-900 text-sm sm:text-base"
                       >
                         Edit
                       </button>
-                      <button className="text-red-600 hover:text-red-900">
+                      <button className="text-red-600 hover:text-red-900 text-sm sm:text-base">
                         Delete
                       </button>
                     </td>
