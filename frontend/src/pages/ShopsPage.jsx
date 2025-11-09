@@ -34,7 +34,8 @@ const TabButton = ({ isActive, onClick, children }) => {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-sm transition-colors duration-150 ${
+      // Reduced padding and text size on mobile for better fit
+      className={`px-3 py-2 text-xs sm:text-sm transition-colors duration-150 ${
         isActive ? activeClasses : inactiveClasses
       }`}
     >
@@ -47,13 +48,11 @@ const TabButton = ({ isActive, onClick, children }) => {
 export default function ShopsPage() {
   const [activeTab, setActiveTab] = useState("manage");
   const [agentOptions, setAgentOptions] = useState([]);
-  // --- NEW: State to hold available LGAs based on selected state ---
   const [availableLgas, setAvailableLgas] = useState([]);
 
-  // ⭐ UPDATED: Add 'lga' to the filter state
   const [filters, setFilters] = useState({
     state: "all",
-    lga: "all", // NEW: LGA filter
+    lga: "all", 
     agent: "all",
     status: "all",
     dateRange: "all",
@@ -68,12 +67,12 @@ export default function ShopsPage() {
     }));
   };
 
-  // --- NEW: Effect to update LGAs when state filter changes ---
+  // Effect to update LGAs when state filter changes
   useEffect(() => {
     if (filters.state && filters.state !== 'all') {
       setAvailableLgas(STATE_LGAS[filters.state] || []);
     } else {
-      setAvailableLgas([]); // Clear LGAs if no state is selected
+      setAvailableLgas([]); 
     }
     // Reset LGA filter when state changes
     setFilters(prevFilters => ({ ...prevFilters, lga: 'all' }));
@@ -90,7 +89,7 @@ export default function ShopsPage() {
           }`.trim();
           return {
             value: String(agent.agent_id),
-            label: fullName || agent.email,
+            label: fullName || agent.user.email,
           };
         });
         setAgentOptions(options);
@@ -115,20 +114,26 @@ export default function ShopsPage() {
   ];
 
   return (
-    <div>
+    // General padding adjusted for mobile
+    <div className="p-4 md:p-6"> 
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-800">
+        {/* Adjusted text size for smaller screens */}
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
           Shops Management
         </h2>
       </div>
 
-      <div className="bg-white p-4 rounded-t-2xl border border-gray-200 mb-0 flex flex-wrap gap-4 items-center">
+      {/* *** RESPONSIVE FILTER BAR: Uses flex-wrap and full width inputs on mobile ***
+      */}
+      <div className="bg-white p-4 rounded-t-2xl border border-gray-200 mb-0 flex flex-wrap gap-3 sm:gap-4 items-center">
+        
         {/* Filter by State */}
         <select
           name="state"
           value={filters.state}
           onChange={handleFilterChange}
-          className="border-gray-300 rounded-lg"
+          // Make input full width on mobile, then auto on small screens and up
+          className="border-gray-300 rounded-lg w-full sm:w-auto text-sm" 
         >
           <option value="all">Filter by State</option>
           {availableStates.map((state) => (
@@ -138,13 +143,14 @@ export default function ShopsPage() {
           ))}
         </select>
 
-        {/* --- NEW: Filter by LGA --- */}
+        {/* --- Filter by LGA --- */}
         <select
           name="lga"
           value={filters.lga}
           onChange={handleFilterChange}
-          disabled={!availableLgas.length} // Disable if no state is selected
-          className="border-gray-300 rounded-lg disabled:bg-gray-100"
+          disabled={!availableLgas.length} 
+          // Make input full width on mobile, then auto on small screens and up
+          className="border-gray-300 rounded-lg disabled:bg-gray-100 w-full sm:w-auto text-sm"
         >
           <option value="all">Filter by LGA</option>
           {availableLgas.map((lga) => (
@@ -159,7 +165,8 @@ export default function ShopsPage() {
           name="agent"
           value={filters.agent}
           onChange={handleFilterChange}
-          className="border-gray-300 rounded-lg"
+          // Make input full width on mobile, then auto on small screens and up
+          className="border-gray-300 rounded-lg w-full sm:w-auto text-sm"
         >
           <option value="all">Filter by Agent</option>
           {agentOptions.map((agent) => (
@@ -174,7 +181,8 @@ export default function ShopsPage() {
           name="status"
           value={filters.status}
           onChange={handleFilterChange}
-          className="border-gray-300 rounded-lg"
+          // Make input full width on mobile, then auto on small screens and up
+          className="border-gray-300 rounded-lg w-full sm:w-auto text-sm"
         >
           {shopStatuses.map((status) => (
             <option key={status.value} value={status.value}>
@@ -188,7 +196,8 @@ export default function ShopsPage() {
           name="dateRange"
           value={filters.dateRange}
           onChange={handleFilterChange}
-          className="border-gray-300 rounded-lg"
+          // Make input full width on mobile, then auto on small screens and up
+          className="border-gray-300 rounded-lg w-full sm:w-auto text-sm"
         >
           {dateRanges.map((range) => (
             <option key={range.value} value={range.value}>
@@ -198,6 +207,7 @@ export default function ShopsPage() {
         </select>
       </div>
 
+      {/* Tabs area: Reduced padding */}
       <div className="bg-white border-b border-gray-200 px-4 pt-2">
         <div className="flex -mb-px space-x-4">
           <TabButton
@@ -215,21 +225,28 @@ export default function ShopsPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-b-2xl border border-t-0 border-gray-200">
+      {/* Content area: Adjusted padding */}
+      <div className="bg-white p-4 md:p-6 rounded-b-2xl border border-t-0 border-gray-200">
         {activeTab === "manage" && (
           <div className="w-full">
-            <h3 className="font-semibold mb-4">All Shops (Table View)</h3>
-            <ShopTable filters={filters} />
+            <h3 className="font-semibold mb-4 text-lg">All Shops (Table View)</h3>
+            {/* The ShopTable component itself needs to handle horizontal scrolling on mobile */}
+            <div className="overflow-x-auto"> 
+                <ShopTable filters={filters} />
+            </div>
           </div>
         )}
 
         {activeTab === "map" && (
           <div className="w-full">
-            <h3 className="font-semibold mb-4">Shops Location Map</h3>
-            <ShopMap filters={filters} mapHeight="600px" />
+            <h3 className="font-semibold mb-4 text-lg">Shops Location Map</h3>
+            {/* Added a responsive height class for the map container */}
+            <div className="h-[400px] md:h-[600px] w-full"> 
+                <ShopMap filters={filters} mapHeight="100%" />
+            </div>
           </div>
         )}
       </div>
     </div>
   );
-}
+}   
