@@ -15,14 +15,20 @@ class ShopPhotoSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
         
     def get_photo(self, obj):
-        """
-        Returns the absolute URL for the photo file using the request context.
-        """
-        request = self.context.get('request')
-        if obj.photo:
-            # obj.photo.url gives the relative URL (e.g., /media/shop_photos/...)
-            return request.build_absolute_uri(obj.photo.url) if request else obj.photo.url
-        return None
+        if not obj.photo:
+            return None
+            
+        try:
+            url = obj.photo.url
+            # FIX: If it's already a full URL (Cloudinary), return it directly
+            if url.startswith("http"):
+                return url
+            
+            # Otherwise (Local development), append the request domain
+            request = self.context.get('request')
+            return request.build_absolute_uri(url) if request else url
+        except Exception:
+            return None
 
 
 class ShopSerializer(serializers.ModelSerializer):

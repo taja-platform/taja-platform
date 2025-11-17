@@ -52,9 +52,8 @@ class ShopPhoto(models.Model):
         on_delete=models.CASCADE,
         related_name="photos"
     )
-    photo = CloudinaryField(
-        "image",
-        folder="shop_photos",
+    photo = models.ImageField(
+        upload_to="shop_photos", # Folder in Cloudinary
         validators=[validate_image]
     )
 
