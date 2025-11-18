@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from "react";
 import ShopTable from "../components/ShopTable";
 import ShopMap from "../components/ShopMap";
+import ExpandedMap from "../components/ExpandedMap"; // Import the new component
 import api from "../api/api";
-import { Search, X } from "lucide-react"; // Added icons
+import { Search, X, Maximize2 } from "lucide-react"; // Added Maximize2
 
 // --- State and LGA Mapping ---
 const STATE_LGAS = {
@@ -44,8 +45,8 @@ export default function ShopsPage() {
   const [activeTab, setActiveTab] = useState("manage");
   const [agentOptions, setAgentOptions] = useState([]);
   const [availableLgas, setAvailableLgas] = useState([]);
+  const [isMapExpanded, setIsMapExpanded] = useState(false); // State for map expansion
 
-  // Added 'search' to initial state
   const [filters, setFilters] = useState({
     search: "",
     state: "all",
@@ -63,7 +64,6 @@ export default function ShopsPage() {
     }));
   };
 
-  // Clear all filters function
   const handleClearFilters = () => {
     setFilters({
       search: "",
@@ -81,9 +81,6 @@ export default function ShopsPage() {
     } else {
       setAvailableLgas([]);
     }
-    // Only reset LGA if the state changed (this logic is slightly implicitly handled by the user changing state)
-    // To prevent infinite loops or unwanted resets, we usually check if state actually changed, 
-    // but for this simple implementation, we ensure LGA is valid for the selected state.
     if (filters.state === "all") {
          setFilters(prev => ({ ...prev, lga: "all" }));
     }
@@ -96,7 +93,7 @@ export default function ShopsPage() {
         const options = res.data.map((agent) => {
           const fullName = `${agent.user.first_name || ""} ${agent.user.last_name || ""}`.trim();
           return {
-            value: String(agent.agent_id), // Ensure ID is string for comparison
+            value: String(agent.agent_id), 
             label: fullName || agent.user.email,
           };
         });
@@ -121,7 +118,6 @@ export default function ShopsPage() {
     { value: "last_90d", label: "Last 90 Days" },
   ];
 
-  // Check if any filter is active to show Clear button
   const isFiltering = filters.search || 
                       filters.state !== "all" || 
                       filters.lga !== "all" || 
@@ -137,10 +133,8 @@ export default function ShopsPage() {
         </h2>
       </div>
 
-      {/* Responsive Filter Bar */}
+      {/* Standard Filter Bar (Hidden when map is expanded overlay is active to avoid dupes, though overlay covers it anyway) */}
       <div className="bg-white p-4 rounded-t-2xl border border-gray-200 mb-0 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center">
-        
-        {/* Search Input */}
         <div className="relative flex-grow min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -153,7 +147,6 @@ export default function ShopsPage() {
           />
         </div>
 
-        {/* Dropdowns */}
         <div className="flex flex-wrap gap-3 flex-grow sm:flex-grow-0">
           <select
             name="state"
@@ -215,7 +208,6 @@ export default function ShopsPage() {
           </select>
         </div>
 
-        {/* Clear Button */}
         {isFiltering && (
           <button
             onClick={handleClearFilters}
@@ -244,7 +236,7 @@ export default function ShopsPage() {
         </div>
       </div>
 
-      <div className="bg-white p-4 md:p-6 rounded-b-2xl border border-t-0 border-gray-200">
+      <div className="bg-white p-4 md:p-6 rounded-b-2xl border border-t-0 border-gray-200 relative">
         {activeTab === "manage" && (
           <div className="w-full">
             <div className="overflow-x-auto">
@@ -254,13 +246,39 @@ export default function ShopsPage() {
         )}
 
         {activeTab === "map" && (
-          <div className="w-full">
-            <div className="h-[400px] md:h-[600px] w-full">
+          <div className="w-full relative">
+             {/* Header for Map Tab with Expand Button */}
+             <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-lg">Shops Location Map</h3>
+                <button
+                    onClick={() => setIsMapExpanded(true)}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                >
+                    <Maximize2 className="w-4 h-4" />
+                    <span>Expand Map</span>
+                </button>
+             </div>
+
+            <div className="h-[400px] md:h-[600px] w-full border border-gray-200 rounded-xl overflow-hidden">
               <ShopMap filters={filters} mapHeight="100%" />
             </div>
           </div>
         )}
       </div>
+
+      {/* Full Screen Map Overlay */}
+      {isMapExpanded && (
+        <ExpandedMap 
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onClose={() => setIsMapExpanded(false)}
+            availableStates={availableStates}
+            availableLgas={availableLgas}
+            agentOptions={agentOptions}
+            shopStatuses={shopStatuses}
+            dateRanges={dateRanges}
+        />
+      )}
     </div>
   );
 }
