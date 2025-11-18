@@ -3,7 +3,7 @@ from django.db import models
 from accounts.models import StoreOwner, Agent
 from PIL import Image
 from .validators import validate_image 
-from cloudinary.models import CloudinaryField
+from cloudinary_storage.storage import MediaCloudinaryStorage
 
 
 class Shop(models.Model):
@@ -53,8 +53,9 @@ class ShopPhoto(models.Model):
         related_name="photos"
     )
     photo = models.ImageField(
-        upload_to="shop_photos", # Folder in Cloudinary
-        validators=[validate_image]
+        upload_to="shop_photos", 
+        validators=[validate_image],
+        storage=MediaCloudinaryStorage() # Forces Cloudinary upload
     )
 
 

@@ -150,10 +150,10 @@ CLOUDINARY_STORAGE = {
 }
 
 
-if DEBUG:
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-else:
-    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+# if DEBUG:
+#     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+# else:
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 
 # ---------------------------------------------------------------------
@@ -195,10 +195,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # Let WhiteNoise serve static files efficiently
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-if DEBUG:
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+# if DEBUG:
+#     MEDIA_URL = "/media/"
+#     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+MEDIA_URL = "/media/"
 
 # ---------------------------------------------------------------------
 # CACHE (Optional: You can remove if not using Redis)
