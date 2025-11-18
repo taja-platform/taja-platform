@@ -1,5 +1,7 @@
 import { ChevronLeft, ChevronRight, MapPin, Store } from "lucide-react";
 import { useEffect, useState } from "react";
+// Make sure this path matches where you created the file above
+import { getOptimizedUrl } from '../utils/imageUtils';
 
 export const ShopCard = ({ shop, onEdit, onView }) => {
   const shopPhotos = shop.photos || [];
@@ -32,8 +34,11 @@ export const ShopCard = ({ shop, onEdit, onView }) => {
     );
   };
 
+  // --- CHANGE HERE: OPTIMIZE THE URL ---
+  // We request a width of 600px. This is perfect for the card size
+  // but much smaller (file size) than the original upload.
   const currentImageUrl = hasPhotos
-    ? shopPhotos[currentImageIndex].photo
+    ? getOptimizedUrl(shopPhotos[currentImageIndex].photo, 600)
     : null;
 
   return (
@@ -47,6 +52,8 @@ export const ShopCard = ({ shop, onEdit, onView }) => {
             <img
               src={currentImageUrl}
               alt={`${shop.name} photo ${currentImageIndex + 1}`}
+              // Added loading="lazy" for better performance on long lists
+              loading="lazy" 
               className="w-full h-full object-cover transition-opacity duration-500 ease-in-out"
             />
             {shopPhotos.length > 1 && (

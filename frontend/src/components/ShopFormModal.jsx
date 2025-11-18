@@ -5,6 +5,7 @@ import { Input } from "./utils/Input";
 import { Select } from "./utils/Select";
 import { CheckCircle, MapPin, Trash2, Upload, X } from "lucide-react";
 import { useCurrentLocation } from "../utils/getCurrentLocation";
+import imageCompression from 'browser-image-compression';
 
 export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const isEditing = !!shop?.id;
@@ -50,23 +51,49 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
     setImageError(null);
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => { // Make async
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     const slotsAvailable = MAX_PHOTOS - totalCurrentPhotos;
 
     if (files.length > slotsAvailable) {
-      setImageError(
-        `You can only add ${slotsAvailable} more photo(s). The limit is ${MAX_PHOTOS}.`
-      );
+      setImageError(`Limit reached.`);
       e.target.value = null;
       return;
     }
 
-    setImageError(null);
-    setNewFiles((prev) => [...prev, ...files]);
-    e.target.value = null;
+    // Options for high quality but low file size
+    const options = {
+      maxSizeMB: 1.5,          // Max file size (Cloudinary handles up to 10MB, but 1.5MB is plenty for web)
+      maxWidthOrHeight: 1920,  // 1920px is Full HD. 4k images are overkill for phone screens.
+      useWebWorker: true,      // Runs in background thread (doesn't freeze UI)
+      fileType: "image/webp"   // WebP is smaller and better quality than JPEG
+    };
+
+    setIsLoading(true); // Show loading while compressing
+    try {
+      const compressedFiles = await Promise.all(
+        files.map(async (file) => {
+          // Keep original if it's already small
+          if (file.size / 1024 / 1024 < 1) return file; 
+          try {
+              return await imageCompression(file, options);
+          } catch (err) {
+              console.error("Compression failed, using original", err);
+              return file;
+          }
+        })
+      );
+      
+      setNewFiles((prev) => [...prev, ...compressedFiles]);
+      setImageError(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+      e.target.value = null;
+    }
   };
 
   const handleChange = (e) => {
