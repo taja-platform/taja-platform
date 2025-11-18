@@ -70,23 +70,40 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
     const filteredShops = useMemo(() => {
         let filtered = rawShops;
 
-        // 1. Filter by State
+        // 1. Filter by Search Term (Matches ShopTable logic)
+        if (filters.search) {
+            const lowerSearch = filters.search.toLowerCase();
+            filtered = filtered.filter(shop => {
+                return (
+                    shop.name?.toLowerCase().includes(lowerSearch) ||
+                    shop.phone_number?.toLowerCase().includes(lowerSearch) ||
+                    shop.address?.toLowerCase().includes(lowerSearch) ||
+                    shop.state?.toLowerCase().includes(lowerSearch) ||
+                    shop.local_government_area?.toLowerCase().includes(lowerSearch) ||
+                    // Check owner/agent names (safe string conversion)
+                    String(shop.owner || "").toLowerCase().includes(lowerSearch) ||
+                    String(shop.created_by || "").toLowerCase().includes(lowerSearch)
+                );
+            });
+        }
+
+        // 2. Filter by State
         if (filters.state && filters.state !== 'all') {
             filtered = filtered.filter(shop => shop.state === filters.state);
         }
         
-        // --- NEW: Filter by LGA ---
+        // 3. Filter by LGA
         if (filters.lga && filters.lga !== 'all') {
             filtered = filtered.filter(shop => shop.local_government_area === filters.lga);
         }
 
-        // 2. Filter by Status
+        // 4. Filter by Status
         if (filters.status && filters.status !== 'all') {
             const isActive = filters.status === 'true';
             filtered = filtered.filter(shop => shop.is_active === isActive);
         }
         
-        // 3. Filter by Date Created
+        // 5. Filter by Date Created
         if (filters.dateRange && filters.dateRange !== 'all') {
             const now = new Date();
             let cutoffDate;
@@ -98,7 +115,7 @@ export default function ShopMap({ filters, mapHeight = '60vh' }) {
             }
         }
 
-        // 4. Filter by Agent
+        // 6. Filter by Agent
         if (filters.agent && filters.agent !== 'all') {
             filtered = filtered.filter(shop => String(shop.created_by_id) === filters.agent);
         }
