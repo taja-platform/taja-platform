@@ -3,23 +3,20 @@ import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { toast } from "sonner";
 import {
-  MapPin, Phone, Store, Zap, ChevronLeft, ChevronRight, Eye // Added Eye icon
+  MapPin, Phone, Store, Zap, ChevronLeft, ChevronRight, Eye
 } from "lucide-react";
 import { format, subDays } from "date-fns";
-import ShopDetailsModal from "./modals/ShopDetailsModal"; // Import the new modal
+import ShopDetailsModal from "./modals/ShopDetailsModal"; 
 
 export default function ShopTable({ filters }) {
   const [rawShops, setRawShops] = useState([]);
   const [filteredShops, setFilteredShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // --- New State for Details Modal ---
   const [selectedShop, setSelectedShop] = useState(null); 
 
   const shopsPerPage = 10;
 
-  // ... (fetchShops and useEffect filtering logic remains exactly the same) ...
   const fetchShops = async () => {
     setLoading(true);
     try {
@@ -42,8 +39,13 @@ export default function ShopTable({ filters }) {
 
   useEffect(() => { fetchShops(); }, []);
 
+  // 1. Page Reset Logic: Only when filters change
   useEffect(() => {
     setCurrentPage(1);
+  }, [filters]);
+
+  // 2. Filtering Logic: Runs when filters OR rawShops data changes
+  useEffect(() => {
     let currentFilteredShops = [...rawShops];
 
     if (filters.search) {
@@ -54,11 +56,13 @@ export default function ShopTable({ filters }) {
           shop.phone_number?.toLowerCase().includes(lowerSearch) ||
           shop.address?.toLowerCase().includes(lowerSearch) ||
           shop.state?.toLowerCase().includes(lowerSearch) ||
+          shop.local_government_area?.toLowerCase().includes(lowerSearch) ||
+          String(shop.owner || "").toLowerCase().includes(lowerSearch) ||
           String(shop.created_by || "").toLowerCase().includes(lowerSearch)
         );
       });
     }
-    // ... (Rest of existing filter logic for state, lga, status, etc.) ...
+
     if (filters.state && filters.state !== "all") {
         currentFilteredShops = currentFilteredShops.filter(s => s.state === filters.state);
     }
@@ -73,7 +77,6 @@ export default function ShopTable({ filters }) {
         currentFilteredShops = currentFilteredShops.filter(s => String(s.created_by_id) === filters.agent);
     }
     if (filters.dateRange && filters.dateRange !== "all") {
-        // ... date logic ...
          const now = new Date();
         let cutoffDate;
         if (filters.dateRange === "last_7d") cutoffDate = subDays(now, 7);
@@ -94,7 +97,19 @@ export default function ShopTable({ filters }) {
   const totalPages = Math.ceil(filteredShops.length / shopsPerPage);
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // --- Handlers ---
+  // --- HANDLERS ---
+
+  // 3. Handler to update a single shop in the list without refetching
+  const handleShopUpdate = (updatedShop) => {
+    setRawShops((prevShops) => 
+        prevShops.map((shop) => shop.id === updatedShop.id ? updatedShop : shop)
+    );
+    // Also update the selected shop if it's the one being viewed
+    if (selectedShop && selectedShop.id === updatedShop.id) {
+        setSelectedShop(updatedShop);
+    }
+  };
+
   const handleRowClick = (shop) => {
     setSelectedShop(shop);
   };
@@ -103,14 +118,13 @@ export default function ShopTable({ filters }) {
     setSelectedShop(null);
   };
 
-  // ... (handleDeleteShop, handleEditShop logic) ...
   const handleDeleteShop = (shop, e) => {
-      e.stopPropagation(); // Prevent row click
+      e.stopPropagation(); 
       console.log("Deleting", shop.name);
   }
   
   const handleEditShop = (shop, e) => {
-      e.stopPropagation(); // Prevent row click
+      e.stopPropagation(); 
       console.log("Editing", shop.name);
   }
 
@@ -155,7 +169,7 @@ export default function ShopTable({ filters }) {
                   <tr 
                     key={shop.id} 
                     onClick={() => handleRowClick(shop)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="hover:bg-gray-50 cursor-pointer transition-colors group"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{shop.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{shop.local_government_area}, {shop.state}</td>
@@ -170,8 +184,7 @@ export default function ShopTable({ filters }) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{shop.date_created ? format(new Date(shop.date_created), "MMM d, yyyy") : "N/A"}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        {/* Note: stopPropagation is crucial here so clicking 'Edit' doesn't also open the view modal */}
-                        <button onClick={(e) => handleRowClick(shop)} className="text-gray-400 hover:text-indigo-600 p-1" title="View Details">
+                        <button onClick={(e) => { e.stopPropagation(); handleRowClick(shop); }} className="text-gray-400 hover:text-indigo-600 p-1" title="View Details">
                             <Eye className="w-5 h-5" />
                         </button>
                         <button onClick={(e) => handleEditShop(shop, e)} className="text-blue-600 hover:text-blue-900">Edit</button>
@@ -186,11 +199,12 @@ export default function ShopTable({ filters }) {
         </>
       )}
 
-      {/* RENDER THE MODAL */}
+      {/* RENDER THE MODAL: PASS onUpdate */}
       {selectedShop && (
         <ShopDetailsModal 
             shop={selectedShop} 
             onClose={handleCloseModal} 
+            onUpdate={handleShopUpdate} // Pass the updater function
         />
       )}
     </div>
