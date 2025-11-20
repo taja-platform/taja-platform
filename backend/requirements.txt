@@ -15,10 +15,12 @@ django-cors-headers==4.9.0
 django-redis==6.0.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
+drf-yasg==1.21.11
 Faker==37.8.0
 frozenlist==1.8.0
 gunicorn==23.0.0
 idna==3.11
+inflection==0.5.1
 jmespath==1.0.1
 multidict==6.7.0
 opencage==3.2.0
@@ -30,6 +32,8 @@ PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
 python-dotenv==1.1.1
+pytz==2025.2
+PyYAML==6.0.3
 redis==7.0.1
 requests==2.32.5
 s3transfer==0.14.0
@@ -38,6 +42,7 @@ sqlparse==0.5.3
 tqdm==4.67.1
 typing_extensions==4.15.0
 tzdata==2025.2
+uritemplate==4.2.0
 urllib3==2.5.0
 whitenoise==6.11.0
 yarl==1.22.0
