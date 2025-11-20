@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { toast } from "sonner";
 import {
-  MapPin, Phone, Store, Zap, ChevronLeft, ChevronRight, Eye
+  MapPin, Phone, Store, Zap, ChevronLeft, ChevronRight, Eye, CheckCircle, XCircle, AlertTriangle
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import ShopDetailsModal from "./modals/ShopDetailsModal"; 
@@ -13,6 +13,8 @@ export default function ShopTable({ filters }) {
   const [filteredShops, setFilteredShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // State for the currently open modal
   const [selectedShop, setSelectedShop] = useState(null); 
 
   const shopsPerPage = 10;
@@ -39,15 +41,23 @@ export default function ShopTable({ filters }) {
 
   useEffect(() => { fetchShops(); }, []);
 
-  // 1. Page Reset Logic: Only when filters change
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
 
-  // 2. Filtering Logic: Runs when filters OR rawShops data changes
+  // --- FILTERING LOGIC ---
   useEffect(() => {
     let currentFilteredShops = [...rawShops];
 
+    // 1. Verification Status (Matches the Tabs)
+    if (filters.verification_status && filters.verification_status !== "ALL") {
+        currentFilteredShops = currentFilteredShops.filter(
+            (shop) => shop.verification_status === filters.verification_status
+        );
+    }
+
+    // 2. Search (Name, Phone, Address, Agent)
     if (filters.search) {
       const lowerSearch = filters.search.toLowerCase();
       currentFilteredShops = currentFilteredShops.filter((shop) => {
@@ -63,15 +73,12 @@ export default function ShopTable({ filters }) {
       });
     }
 
+    // 3. Other Dropdown Filters
     if (filters.state && filters.state !== "all") {
         currentFilteredShops = currentFilteredShops.filter(s => s.state === filters.state);
     }
     if (filters.lga && filters.lga !== "all") {
         currentFilteredShops = currentFilteredShops.filter(s => s.local_government_area === filters.lga);
-    }
-    if (filters.status && filters.status !== "all") {
-        const isActive = filters.status === "true";
-        currentFilteredShops = currentFilteredShops.filter(s => s.is_active === isActive);
     }
     if (filters.agent && filters.agent !== "all") {
         currentFilteredShops = currentFilteredShops.filter(s => String(s.created_by_id) === filters.agent);
@@ -91,43 +98,31 @@ export default function ShopTable({ filters }) {
   }, [filters, rawShops]);
 
 
+  // Pagination
   const indexOfLastShop = currentPage * shopsPerPage;
   const indexOfFirstShop = indexOfLastShop - shopsPerPage;
   const currentShops = filteredShops.slice(indexOfFirstShop, indexOfLastShop);
   const totalPages = Math.ceil(filteredShops.length / shopsPerPage);
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // --- HANDLERS ---
-
-  // 3. Handler to update a single shop in the list without refetching
+  // --- LIVE UPDATE HANDLER ---
+  // This function is passed to the Modal. When the modal updates a shop, 
+  // we update our local state here so the table reflects the change immediately.
   const handleShopUpdate = (updatedShop) => {
     setRawShops((prevShops) => 
         prevShops.map((shop) => shop.id === updatedShop.id ? updatedShop : shop)
     );
-    // Also update the selected shop if it's the one being viewed
+    // Also update the selected shop state to keep the modal in sync if needed
     if (selectedShop && selectedShop.id === updatedShop.id) {
         setSelectedShop(updatedShop);
     }
   };
 
-  const handleRowClick = (shop) => {
-    setSelectedShop(shop);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedShop(null);
-  };
-
-  const handleDeleteShop = (shop, e) => {
-      e.stopPropagation(); 
-      console.log("Deleting", shop.name);
-  }
+  const handleRowClick = (shop) => { setSelectedShop(shop); };
+  const handleCloseModal = () => { setSelectedShop(null); };
   
-  const handleEditShop = (shop, e) => {
-      e.stopPropagation(); 
-      console.log("Editing", shop.name);
-  }
-
+  const handleDeleteShop = (shop, e) => { e.stopPropagation(); console.log("Deleting", shop.name); }
+  const handleEditShop = (shop, e) => { e.stopPropagation(); console.log("Editing", shop.name); }
 
   const renderPaginationButtons = () => (
       <nav className="flex items-center justify-between" aria-label="Pagination">
@@ -143,12 +138,21 @@ export default function ShopTable({ filters }) {
       </nav>
   );
 
+  // Helper to render status badges in the table
+  const StatusCell = ({ status }) => {
+      if (status === 'VERIFIED') return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1"/> Verified</span>;
+      if (status === 'REJECTED') return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1"/> Rejected</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><AlertTriangle className="w-3 h-3 mr-1"/> Pending</span>;
+  };
+
   return (
     <div className="bg-white p-0 rounded-2xl">
       {loading ? (
         <div className="p-10 text-center"><Zap className="w-6 h-6 animate-spin text-gray-500 mx-auto mb-2" /><p className="text-gray-500 text-sm">Loading shops...</p></div>
       ) : filteredShops.length === 0 ? (
-        <p className="text-gray-500 text-sm p-4 text-center border border-gray-200 rounded-xl mt-2 bg-gray-50">No shops found matching the criteria.</p>
+        <div className="p-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 mt-2">
+             <p className="text-gray-500 text-sm">No shops found in this category.</p>
+        </div>
       ) : (
         <>
           <div className="overflow-x-auto border border-gray-200 rounded-xl">
@@ -159,7 +163,7 @@ export default function ShopTable({ filters }) {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><MapPin className="w-4 h-4 inline mr-1" /> Location</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><Phone className="w-4 h-4 inline mr-1" /> Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verification</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -178,9 +182,7 @@ export default function ShopTable({ filters }) {
                         {shop.created_by?.split('@')[0] || "Unassigned"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${shop.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                        {shop.is_active ? "Active" : "Inactive"}
-                      </span>
+                      <StatusCell status={shop.verification_status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{shop.date_created ? format(new Date(shop.date_created), "MMM d, yyyy") : "N/A"}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -199,12 +201,12 @@ export default function ShopTable({ filters }) {
         </>
       )}
 
-      {/* RENDER THE MODAL: PASS onUpdate */}
+      {/* RENDER THE MODAL WITH LIVE UPDATE CALLBACK */}
       {selectedShop && (
         <ShopDetailsModal 
             shop={selectedShop} 
             onClose={handleCloseModal} 
-            onUpdate={handleShopUpdate} // Pass the updater function
+            onUpdate={handleShopUpdate} 
         />
       )}
     </div>

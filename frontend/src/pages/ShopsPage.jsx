@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import ShopTable from "../components/ShopTable";
 import ShopMap from "../components/ShopMap";
-import ExpandedMap from "../components/ExpandedMap"; // Import the new component
+import ExpandedMap from "../components/ExpandedMap"; 
 import api from "../api/api";
-import { Search, X, Maximize2 } from "lucide-react"; // Added Maximize2
+import { Search, X, Maximize2, CheckCircle, Clock, XCircle } from "lucide-react"; // Added icons
+import { useLocation } from "react-router-dom";
 
-// --- State and LGA Mapping ---
 const STATE_LGAS = {
   "Lagos": [
     "Ikeja", "Surulere", "Eti-Osa", "Badagry", "Epe",
@@ -23,6 +23,39 @@ const STATE_LGAS = {
     "Ibadan North", "Ibadan South-West", "Ibadan North-East", "Ogbomosho North",
     "Oyo East", "Oyo West", "Saki East", "Saki West", "Atiba", "Afijio"
   ],
+};
+
+// --- NEW: Verification Tabs Component ---
+const VerificationTabs = ({ activeTab, onTabChange }) => {
+  const tabs = [
+    { id: "PENDING", label: "Pending Review", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50" },
+    { id: "VERIFIED", label: "Verified Shops", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
+    { id: "REJECTED", label: "Rejected", icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+    { id: "ALL", label: "All Shops", icon: null, color: "text-gray-600", bg: "bg-gray-50" },
+  ];
+
+  return (
+    <div className="flex space-x-2 mb-4 overflow-x-auto pb-2">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              isActive 
+                ? "bg-gray-900 text-white shadow-md" 
+                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+            }`}
+          >
+            {Icon && <Icon className={`w-4 h-4 mr-2 ${isActive ? "text-white" : tab.color}`} />}
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 };
 
 const TabButton = ({ isActive, onClick, children }) => {
@@ -42,19 +75,40 @@ const TabButton = ({ isActive, onClick, children }) => {
 };
 
 export default function ShopsPage() {
-  const [activeTab, setActiveTab] = useState("manage");
+  const [activeView, setActiveView] = useState("manage"); // 'manage' or 'map'
   const [agentOptions, setAgentOptions] = useState([]);
   const [availableLgas, setAvailableLgas] = useState([]);
-  const [isMapExpanded, setIsMapExpanded] = useState(false); // State for map expansion
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+
+  const location = useLocation();
+  
+  // Helper to get initial verification status from URL
+  const getInitialVerificationStatus = () => {
+      const params = new URLSearchParams(location.search);
+      // Map old 'status=false' to 'PENDING' for backward compatibility
+      if (params.get("status") === "false") return "PENDING";
+      // Or allow direct status param
+      const status = params.get("verification_status");
+      if (status) return status.toUpperCase();
+      
+      return "PENDING"; // Default to PENDING now instead of ALL
+  };
 
   const [filters, setFilters] = useState({
     search: "",
     state: "all",
     lga: "all",
     agent: "all",
-    status: "all",
+    verification_status: getInitialVerificationStatus(), // Main filter
     dateRange: "all",
   });
+
+  useEffect(() => {
+      const status = getInitialVerificationStatus();
+      if (status !== filters.verification_status) {
+          setFilters(prev => ({ ...prev, verification_status: status }));
+      }
+  }, [location.search]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -63,6 +117,10 @@ export default function ShopsPage() {
       [name]: value,
     }));
   };
+  
+  const handleVerificationTabChange = (status) => {
+      setFilters(prev => ({ ...prev, verification_status: status }));
+  };
 
   const handleClearFilters = () => {
     setFilters({
@@ -70,7 +128,7 @@ export default function ShopsPage() {
       state: "all",
       lga: "all",
       agent: "all",
-      status: "all",
+      verification_status: "PENDING", // Reset to Pending
       dateRange: "all",
     });
   };
@@ -106,11 +164,6 @@ export default function ShopsPage() {
   }, []);
 
   const availableStates = Object.keys(STATE_LGAS);
-  const shopStatuses = [
-    { value: "all", label: "All Statuses" },
-    { value: "true", label: "Active" },
-    { value: "false", label: "Inactive" },
-  ];
   const dateRanges = [
     { value: "all", label: "All Time" },
     { value: "last_7d", label: "Last 7 Days" },
@@ -122,7 +175,6 @@ export default function ShopsPage() {
                       filters.state !== "all" || 
                       filters.lga !== "all" || 
                       filters.agent !== "all" || 
-                      filters.status !== "all" || 
                       filters.dateRange !== "all";
 
   return (
@@ -133,14 +185,20 @@ export default function ShopsPage() {
         </h2>
       </div>
 
-      {/* Standard Filter Bar (Hidden when map is expanded overlay is active to avoid dupes, though overlay covers it anyway) */}
+      {/* 1. Verification Status Tabs */}
+      <VerificationTabs 
+        activeTab={filters.verification_status} 
+        onTabChange={handleVerificationTabChange} 
+      />
+
+      {/* 2. Filter Bar */}
       <div className="bg-white p-4 rounded-t-2xl border border-gray-200 mb-0 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center">
         <div className="relative flex-grow min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             name="search"
-            placeholder="Search shops, address, or phones..."
+            placeholder="Search shops..."
             value={filters.search}
             onChange={handleFilterChange}
             className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900"
@@ -186,17 +244,6 @@ export default function ShopsPage() {
           </select>
 
           <select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
-            className="border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-gray-900 focus:border-gray-900 w-full sm:w-auto"
-          >
-            {shopStatuses.map((status) => (
-              <option key={status.value} value={status.value}>{status.label}</option>
-            ))}
-          </select>
-
-          <select
             name="dateRange"
             value={filters.dateRange}
             onChange={handleFilterChange}
@@ -219,17 +266,18 @@ export default function ShopsPage() {
         )}
       </div>
 
+      {/* View Tabs */}
       <div className="bg-white border-b border-gray-200 px-4 pt-2">
         <div className="flex -mb-px space-x-4">
           <TabButton
-            isActive={activeTab === "manage"}
-            onClick={() => setActiveTab("manage")}
+            isActive={activeView === "manage"}
+            onClick={() => setActiveView("manage")}
           >
             📝 Manage Shops
           </TabButton>
           <TabButton
-            isActive={activeTab === "map"}
-            onClick={() => setActiveTab("map")}
+            isActive={activeView === "map"}
+            onClick={() => setActiveView("map")}
           >
             🗺️ View Map
           </TabButton>
@@ -237,7 +285,7 @@ export default function ShopsPage() {
       </div>
 
       <div className="bg-white p-4 md:p-6 rounded-b-2xl border border-t-0 border-gray-200 relative">
-        {activeTab === "manage" && (
+        {activeView === "manage" && (
           <div className="w-full">
             <div className="overflow-x-auto">
               <ShopTable filters={filters} />
@@ -245,9 +293,8 @@ export default function ShopsPage() {
           </div>
         )}
 
-        {activeTab === "map" && (
+        {activeView === "map" && (
           <div className="w-full relative">
-             {/* Header for Map Tab with Expand Button */}
              <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-lg">Shops Location Map</h3>
                 <button
@@ -266,7 +313,6 @@ export default function ShopsPage() {
         )}
       </div>
 
-      {/* Full Screen Map Overlay */}
       {isMapExpanded && (
         <ExpandedMap 
             filters={filters}
@@ -275,7 +321,7 @@ export default function ShopsPage() {
             availableStates={availableStates}
             availableLgas={availableLgas}
             agentOptions={agentOptions}
-            shopStatuses={shopStatuses}
+            shopStatuses={[]} // Removed old status dropdown in favor of tabs
             dateRanges={dateRanges}
         />
       )}

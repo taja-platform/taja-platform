@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { 
   X, MapPin, Phone, Calendar, User, 
-  CheckCircle, XCircle, Globe, Store, Maximize2, ShieldCheck, Ban 
+  CheckCircle, XCircle, Globe, Store, Maximize2, ShieldCheck, Ban, AlertTriangle 
 } from "lucide-react";
 import { format } from "date-fns";
 import api from "../../api/api"; 
@@ -10,32 +10,42 @@ import { toast } from "sonner";
 import ExpandedImageViewer from "./ExpandedImageViewer"; 
 import ShopHistory from "../ShopHistory"; 
 
-// 1. Accept 'onUpdate' prop
 export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpdate }) {
   const [shop, setShop] = useState(initialShopData);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  
+  // --- State for Rejection Workflow ---
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
   if (!shop) return null;
 
-  const handleStatusChange = async (newStatus) => {
+  // Handle Approve or Deactivate
+  const handleStatusChange = async (status, reason = "") => {
     setIsUpdating(true);
     try {
-        const res = await api.patch(`/shops/${shop.id}/`, { is_active: newStatus });
+        const payload = { 
+            verification_status: status 
+        };
+        if (reason) payload.rejection_reason = reason;
+
+        const res = await api.patch(`/shops/${shop.id}/`, payload);
         
         const updatedShop = res.data;
-        
-        // Update local state (Modal UI)
-        setShop({ ...shop, is_active: updatedShop.is_active });
+        setShop(updatedShop);
 
-        // 2. Update Parent State (Table UI) immediately
-        if (onUpdate) {
-            onUpdate(updatedShop);
-        }
+        if (onUpdate) onUpdate(updatedShop);
         
-        const action = newStatus ? "activated" : "deactivated";
-        toast.success(`Shop successfully ${action}.`);
+        let msg = "Shop updated.";
+        if (status === "VERIFIED") msg = "Shop verified successfully!";
+        if (status === "REJECTED") msg = "Shop rejected.";
+        
+        toast.success(msg);
+        
+        if (status === "REJECTED") setIsRejecting(false); // Close rejection form
+
     } catch (err) {
         console.error("Failed to update status", err);
         toast.error("Failed to update shop status.");
@@ -44,27 +54,26 @@ export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpd
     }
   };
 
-  // ... (The rest of the file remains exactly the same) ...
-
   const openImageViewer = (index) => {
     setSelectedImageIndex(index);
     setIsImageViewerOpen(true);
   };
 
-  const InfoItem = ({ icon: Icon, label, value, isStatus }) => (
+  // Helper for Status Badge
+  const StatusBadge = ({ status }) => {
+      if (status === "VERIFIED") return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold flex items-center w-fit"><CheckCircle className="w-3 h-3 mr-1"/> Verified</span>;
+      if (status === "REJECTED") return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold flex items-center w-fit"><XCircle className="w-3 h-3 mr-1"/> Rejected</span>;
+      return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold flex items-center w-fit"><AlertTriangle className="w-3 h-3 mr-1"/> Pending Review</span>;
+  };
+
+  const InfoItem = ({ icon: Icon, label, value, customValue }) => (
     <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
       <div className="p-2 bg-white rounded-md shadow-sm text-gray-600">
         <Icon className="w-5 h-5" />
       </div>
       <div>
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-        {isStatus ? (
-          <span className={`inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-            value ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-          }`}>
-            {value ? "Active / Verified" : "Inactive / Pending Review"}
-          </span>
-        ) : (
+        {customValue ? customValue : (
           <p className="text-sm font-semibold text-gray-900 mt-0.5 break-words">{value || "N/A"}</p>
         )}
       </div>
@@ -81,11 +90,14 @@ export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpd
           {/* Header */}
           <div className="flex justify-between items-start p-6 border-b border-gray-100 bg-white sticky top-0 z-10">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                <Store className="w-6 h-6 mr-2 text-indigo-600" />
-                {shop.name}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">ID: #{shop.id}</p>
+              <div className="flex items-center gap-3 mb-1">
+                 <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <Store className="w-6 h-6 mr-2 text-indigo-600" />
+                    {shop.name}
+                 </h2>
+                 <StatusBadge status={shop.verification_status} />
+              </div>
+              <p className="text-sm text-gray-500">ID: #{shop.id}</p>
             </div>
             <button 
               onClick={onClose}
@@ -98,6 +110,16 @@ export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpd
           {/* Scrollable Content */}
           <div className="overflow-y-auto p-6 space-y-8">
             
+            {/* Show Rejection Reason if Rejected */}
+            {shop.verification_status === "REJECTED" && shop.rejection_reason && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                    <h4 className="text-red-800 font-bold flex items-center mb-1">
+                        <XCircle className="w-5 h-5 mr-2" /> Rejection Reason
+                    </h4>
+                    <p className="text-red-700 text-sm">{shop.rejection_reason}</p>
+                </div>
+            )}
+
             <section>
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Shop Photos</h3>
               {shop.photos && shop.photos.length > 0 ? (
@@ -145,9 +167,8 @@ export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpd
                 <div className="grid grid-cols-2 gap-4">
                   <InfoItem 
                     icon={shop.is_active ? CheckCircle : XCircle} 
-                    label="Status" 
-                    value={shop.is_active} 
-                    isStatus 
+                    label="System Status" 
+                    customValue={<StatusBadge status={shop.verification_status} />}
                   />
                   <InfoItem icon={User} label="Owner" value={shop.owner || "Unassigned"} />
                 </div>
@@ -172,43 +193,87 @@ export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpd
 
           </div>
           
-          <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-             <button 
-               onClick={onClose}
-               className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm"
-             >
-               Close
-             </button>
+          {/* --- FOOTER ACTION AREA --- */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50">
+            
+            {/* 1. Rejection Form (Shows when 'Reject' is clicked) */}
+            {isRejecting ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Reason for Rejection <span className="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="E.g. Photos are blurry, address is incorrect..."
+                        className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent mb-3 h-24"
+                    />
+                    <div className="flex justify-end space-x-3">
+                        <button 
+                            onClick={() => setIsRejecting(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={() => handleStatusChange("REJECTED", rejectionReason)}
+                            disabled={!rejectionReason.trim() || isUpdating}
+                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isUpdating ? "Rejecting..." : "Confirm Rejection"}
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                /* 2. Default Action Buttons */
+                <div className="flex justify-between items-center">
+                    <button 
+                        onClick={onClose}
+                        className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm"
+                    >
+                        Close
+                    </button>
 
-             <div className="flex space-x-3">
-                {!shop.is_active ? (
-                    <button 
-                        onClick={() => handleStatusChange(true)}
-                        disabled={isUpdating}
-                        className="flex items-center px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-md disabled:opacity-50"
-                    >
-                        {isUpdating ? "Processing..." : (
+                    <div className="flex space-x-3">
+                        {/* If Pending or Rejected -> Show Approve options */}
+                        {shop.verification_status !== "VERIFIED" && (
                             <>
-                                <ShieldCheck className="w-4 h-4 mr-2" />
-                                Verify & Activate
+                                <button 
+                                    onClick={() => setIsRejecting(true)}
+                                    className="flex items-center px-4 py-2 bg-red-50 text-red-700 font-medium rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+                                >
+                                    <Ban className="w-4 h-4 mr-2" />
+                                    Reject
+                                </button>
+                                <button 
+                                    onClick={() => handleStatusChange("VERIFIED")}
+                                    disabled={isUpdating}
+                                    className="flex items-center px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-md disabled:opacity-50"
+                                >
+                                    {isUpdating ? "Processing..." : (
+                                        <>
+                                            <ShieldCheck className="w-4 h-4 mr-2" />
+                                            Verify & Activate
+                                        </>
+                                    )}
+                                </button>
                             </>
                         )}
-                    </button>
-                ) : (
-                    <button 
-                        onClick={() => handleStatusChange(false)}
-                        disabled={isUpdating}
-                        className="flex items-center px-6 py-2 bg-red-50 border border-red-200 text-red-700 font-medium rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
-                    >
-                        {isUpdating ? "Processing..." : (
-                            <>
-                                <Ban className="w-4 h-4 mr-2" />
-                                Deactivate Shop
-                            </>
+
+                        {/* If Verified -> Show Deactivate (moves back to Rejected/Pending state conceptually or just is_active=false?) */}
+                        {/* Based on workflow, we probably want to Revoke Verification */}
+                        {shop.verification_status === "VERIFIED" && (
+                            <button 
+                                onClick={() => setIsRejecting(true)} // Revoking implies rejection/needs work
+                                className="flex items-center px-6 py-2 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50"
+                            >
+                                <AlertTriangle className="w-4 h-4 mr-2" />
+                                Revoke Verification
+                            </button>
                         )}
-                    </button>
-                )}
-             </div>
+                    </div>
+                </div>
+            )}
           </div>
         </div>
       </div>
