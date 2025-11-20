@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "cloudinary",
     "cloudinary_storage",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [
@@ -55,6 +56,18 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Swagger settings (optional)
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+        }
+    },
+}
 
 AUTH_USER_MODEL = "accounts.User"
 
