@@ -65,6 +65,8 @@ class ShopSerializer(serializers.ModelSerializer):
             "is_active",
             "date_created",
             "date_updated",
+            "verification_status", 
+            "rejection_reason",
             "state",
             "local_government_area",
             "description", # Added description here from models.py
@@ -77,17 +79,24 @@ class ShopSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "date_created", "date_updated", "owner", "created_by", "created_by_id"]
         
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Conditional read_only for is_active field based on user role
+        
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             user = request.user
-            # Assuming Role is an enum on the User model
-            if user.role in [StoreOwner.Role.ADMIN, StoreOwner.Role.DEVELOPER] and request.method in ['PUT', 'PATCH']:
-                # Allow Admin/Developer to update is_active status
-                self.fields['is_active'].read_only = False 
-
+            
+            # Logic: Only Admins can change verification_status/reason directly
+            # Agents cannot touch these fields directly via API (handled by logic in ViewSet)
+            if user.role not in [StoreOwner.Role.ADMIN, StoreOwner.Role.DEVELOPER]:
+                self.fields['verification_status'].read_only = True
+                self.fields['rejection_reason'].read_only = True
+                self.fields['is_active'].read_only = True
+            else:
+                 # Admins can edit these
+                 pass
+            
     def _geocode_and_update(self, validated_data):
             """Helper to geocode and add location details to validated_data."""
             latitude = validated_data.get("latitude")

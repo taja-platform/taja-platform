@@ -53,28 +53,54 @@ class ShopViewSet(viewsets.ModelViewSet):
         self._log_activity('CREATE', shop, changes={"msg": "Shop created"})
 
     def perform_update(self, serializer):
-        # 1. Get the old instance BEFORE saving
         instance = self.get_object()
+        user = self.request.user
         
-        # 2. Track changes
-        changes = {}
-        # Compare specific fields you care about
-        fields_to_check = ['name', 'phone_number', 'address', 'state', 'is_active', 'description']
+        # --- LOGIC START ---
         
-        for field in fields_to_check:
-            old_val = getattr(instance, field)
-            new_val = serializer.validated_data.get(field, old_val)
+        # Case A: Admin/Developer Updating
+        if user.role in [user.Role.ADMIN, user.Role.DEVELOPER]:
+            # If Admin is rejecting, force is_active=False
+            new_status = serializer.validated_data.get('verification_status')
+            if new_status == Shop.VerificationStatus.REJECTED:
+                 serializer.validated_data['is_active'] = False
             
-            # Convert to string for comparison to avoid type issues
-            if str(old_val) != str(new_val):
-                changes[field] = {'old': str(old_val), 'new': str(new_val)}
+            # If Admin is verifying, force is_active=True
+            elif new_status == Shop.VerificationStatus.VERIFIED:
+                 serializer.validated_data['is_active'] = True
+                 # Clear rejection reason if verified
+                 serializer.validated_data['rejection_reason'] = ""
 
-        # 3. Save the update
+        # Case B: Agent Updating a Rejected Shop
+        elif user.role == user.Role.AGENT:
+            # If the shop was previously REJECTED, reset it to PENDING
+            if instance.verification_status == Shop.VerificationStatus.REJECTED:
+                serializer.validated_data['verification_status'] = Shop.VerificationStatus.PENDING
+                serializer.validated_data['rejection_reason'] = "" # Clear the old reason
+                # Note: is_active stays False until Admin reviews again
+
+        # --- LOGIC END ---
+
+        # Calculate changes for logs
+        changes = {}
+        fields_to_track = [
+            'name', 'phone_number', 'address', 'state', 
+            'local_government_area', 'description', 'is_active',
+            'verification_status', 'rejection_reason' # Added these fields
+        ]
+        
+        for field in fields_to_track:
+            if field in serializer.validated_data:
+                old_val = getattr(instance, field)
+                new_val = serializer.validated_data[field]
+                if str(old_val) != str(new_val):
+                    changes[field] = {'old': str(old_val), 'new': str(new_val)}
+
         updated_shop = serializer.save()
 
-        # 4. Log only if there were changes
         if changes:
             self._log_activity('UPDATE', updated_shop, changes=changes)
+
 
     def perform_destroy(self, instance):
         # Log before deletion so we have the ID
@@ -91,17 +117,17 @@ class ShopViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        """
-        Optionally filter the queryset for agents to only show their own shops.
-        Admins/Developers see all shops.
-        """
         user = self.request.user
         queryset = Shop.objects.all()
 
         if user.is_authenticated and user.role == user.Role.AGENT:
             queryset = queryset.filter(created_by=user)
+            
+        # Optional: Filter by status via query params (e.g. /shops/?status=PENDING)
+        status_param = self.request.query_params.get('verification_status')
+        if status_param:
+             queryset = queryset.filter(verification_status=status_param)
 
-        # Order by newest first
         return queryset.order_by('-date_created')
     
 class MyShopsView(views.APIView):

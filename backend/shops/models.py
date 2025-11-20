@@ -36,6 +36,19 @@ class Shop(models.Model):
     description = models.TextField(blank=True, null=True)
 
 
+    class VerificationStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Review'
+        VERIFIED = 'VERIFIED', 'Verified'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    verification_status = models.CharField(
+        max_length=10,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.PENDING
+    )
+    
+    rejection_reason = models.TextField(blank=True, null=True)
+
     # System fields
     is_active = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
