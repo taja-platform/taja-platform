@@ -2,17 +2,49 @@
 import React, { useState } from "react";
 import { 
   X, MapPin, Phone, Calendar, User, 
-  CheckCircle, XCircle, Globe, Store, Maximize2 
+  CheckCircle, XCircle, Globe, Store, Maximize2, ShieldCheck, Ban 
 } from "lucide-react";
 import { format } from "date-fns";
-import ExpandedImageViewer from "./ExpandedImageViewer"; // We will create this next
-import ShopHistory from '../ShopHistory';
+import api from "../../api/api"; 
+import { toast } from "sonner";
+import ExpandedImageViewer from "./ExpandedImageViewer"; 
+import ShopHistory from "../ShopHistory"; 
 
-export default function ShopDetailsModal({ shop, onClose }) {
+// 1. Accept 'onUpdate' prop
+export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpdate }) {
+  const [shop, setShop] = useState(initialShopData);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   if (!shop) return null;
+
+  const handleStatusChange = async (newStatus) => {
+    setIsUpdating(true);
+    try {
+        const res = await api.patch(`/shops/${shop.id}/`, { is_active: newStatus });
+        
+        const updatedShop = res.data;
+        
+        // Update local state (Modal UI)
+        setShop({ ...shop, is_active: updatedShop.is_active });
+
+        // 2. Update Parent State (Table UI) immediately
+        if (onUpdate) {
+            onUpdate(updatedShop);
+        }
+        
+        const action = newStatus ? "activated" : "deactivated";
+        toast.success(`Shop successfully ${action}.`);
+    } catch (err) {
+        console.error("Failed to update status", err);
+        toast.error("Failed to update shop status.");
+    } finally {
+        setIsUpdating(false);
+    }
+  };
+
+  // ... (The rest of the file remains exactly the same) ...
 
   const openImageViewer = (index) => {
     setSelectedImageIndex(index);
@@ -28,9 +60,9 @@ export default function ShopDetailsModal({ shop, onClose }) {
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
         {isStatus ? (
           <span className={`inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-            value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+            value ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
           }`}>
-            {value ? "Active" : "Inactive"}
+            {value ? "Active / Verified" : "Inactive / Pending Review"}
           </span>
         ) : (
           <p className="text-sm font-semibold text-gray-900 mt-0.5 break-words">{value || "N/A"}</p>
@@ -66,7 +98,6 @@ export default function ShopDetailsModal({ shop, onClose }) {
           {/* Scrollable Content */}
           <div className="overflow-y-auto p-6 space-y-8">
             
-            {/* 1. Image Gallery Section */}
             <section>
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Shop Photos</h3>
               {shop.photos && shop.photos.length > 0 ? (
@@ -97,9 +128,7 @@ export default function ShopDetailsModal({ shop, onClose }) {
               )}
             </section>
 
-            {/* 2. Details Grid */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Column 1: Contact & Location */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-100 pb-2">Location & Contact</h3>
                 <InfoItem icon={Phone} label="Phone Number" value={shop.phone_number} />
@@ -111,7 +140,6 @@ export default function ShopDetailsModal({ shop, onClose }) {
                 <InfoItem icon={MapPin} label="Coordinates" value={`${shop.latitude}, ${shop.longitude}`} />
               </div>
 
-              {/* Column 2: System & Agent Info */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-100 pb-2">System Details</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -129,7 +157,6 @@ export default function ShopDetailsModal({ shop, onClose }) {
               </div>
             </section>
 
-            {/* 3. Description */}
             {shop.description && (
               <section>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Notes / Description</h3>
@@ -138,26 +165,54 @@ export default function ShopDetailsModal({ shop, onClose }) {
                 </div>
               </section>
             )}
-
-            {/* 4. Activity History */}
+            
             <section className="border-t border-gray-100 pt-6">
                 <ShopHistory shopId={shop.id} />
             </section>
+
           </div>
           
-          {/* Footer Actions */}
-          <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+          <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
              <button 
                onClick={onClose}
                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm"
              >
-               Close Details
+               Close
              </button>
+
+             <div className="flex space-x-3">
+                {!shop.is_active ? (
+                    <button 
+                        onClick={() => handleStatusChange(true)}
+                        disabled={isUpdating}
+                        className="flex items-center px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-md disabled:opacity-50"
+                    >
+                        {isUpdating ? "Processing..." : (
+                            <>
+                                <ShieldCheck className="w-4 h-4 mr-2" />
+                                Verify & Activate
+                            </>
+                        )}
+                    </button>
+                ) : (
+                    <button 
+                        onClick={() => handleStatusChange(false)}
+                        disabled={isUpdating}
+                        className="flex items-center px-6 py-2 bg-red-50 border border-red-200 text-red-700 font-medium rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                        {isUpdating ? "Processing..." : (
+                            <>
+                                <Ban className="w-4 h-4 mr-2" />
+                                Deactivate Shop
+                            </>
+                        )}
+                    </button>
+                )}
+             </div>
           </div>
         </div>
       </div>
 
-      {/* Full Screen Image Viewer */}
       {isImageViewerOpen && (
         <ExpandedImageViewer 
           photos={shop.photos} 
