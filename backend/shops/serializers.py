@@ -1,6 +1,6 @@
 import json
 from rest_framework import serializers
-from .models import Shop, ShopPhoto
+from .models import Shop, ShopPhoto, ActivityLog
 from accounts.models import StoreOwner # Import needed for Role check
 from .services import get_location_details
 
@@ -156,3 +156,18 @@ class ShopSerializer(serializers.ModelSerializer):
         instance.refresh_from_db()
 
         return instance
+    
+
+class ActivityLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ActivityLog
+        fields = ['id', 'actor_name', 'action_type', 'shop_name_snapshot', 'changes', 'timestamp']
+
+    def get_actor_name(self, obj):
+        if obj.actor:
+            # Return "First Last" or Email if name is missing
+            name = f"{obj.actor.first_name} {obj.actor.last_name}".strip()
+            return name if name else obj.actor.email
+        return "System"

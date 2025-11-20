@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import ExpandedImageViewer from "./ExpandedImageViewer"; // We will create this next
+import ShopHistory from '../ShopHistory';
 
 export default function ShopDetailsModal({ shop, onClose }) {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
@@ -137,6 +138,11 @@ export default function ShopDetailsModal({ shop, onClose }) {
                 </div>
               </section>
             )}
+
+            {/* 4. Activity History */}
+            <section className="border-t border-gray-100 pt-6">
+                <ShopHistory shopId={shop.id} />
+            </section>
           </div>
           
           {/* Footer Actions */}

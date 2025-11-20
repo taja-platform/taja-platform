@@ -1,9 +1,10 @@
 # shops/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ShopViewSet, MyShopsView
+from .views import ShopViewSet, MyShopsView, ActivityLogViewSet
 
 router = DefaultRouter()
+router.register("logs", ActivityLogViewSet, basename="activity-logs")
 router.register("", ShopViewSet, basename="shops")
 
 urlpatterns = [

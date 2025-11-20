@@ -4,6 +4,7 @@ from accounts.models import StoreOwner, Agent
 from PIL import Image
 from .validators import validate_image 
 from cloudinary_storage.storage import MediaCloudinaryStorage
+from django.conf import settings
 
 
 class Shop(models.Model):
@@ -61,3 +62,32 @@ class ShopPhoto(models.Model):
 
     def __str__(self):
         return f"Photo for {self.shop.name}"
+
+
+class ActivityLog(models.Model):
+    ACTION_TYPES = (
+        ('CREATE', 'Create'),
+        ('UPDATE', 'Update'),
+        ('DELETE', 'Delete'),
+    )
+
+    # Who did it?
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='shop_activities')
+    action_type = models.CharField(max_length=10, choices=ACTION_TYPES)
+    
+    # Which shop? (Nullable in case shop is deleted)
+    shop = models.ForeignKey(Shop, on_delete=models.SET_NULL, null=True, blank=True, related_name='logs')
+    
+    # Snapshot of the name (so we know what it was even if shop is deleted)
+    shop_name_snapshot = models.CharField(max_length=200)
+    
+    # Stores details like: {"phone_number": {"old": "111", "new": "222"}}
+    changes = models.JSONField(default=dict, blank=True) 
+    
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.actor} {self.action_type} {self.shop_name_snapshot}"

@@ -2,8 +2,8 @@
 from rest_framework import viewsets, status, views
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, BasePermission
-from .models import Shop
-from .serializers import ShopSerializer
+from .models import Shop, ActivityLog
+from .serializers import ShopSerializer, ActivityLogSerializer
 from accounts.permissions import IsAgent, IsAdminOrDeveloper 
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -32,6 +32,56 @@ class ShopViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAgent | IsAdminOrDeveloper]
     parser_classes = [MultiPartParser, FormParser]
 
+    def _log_activity(self, action, shop_instance, changes=None):
+        """Helper to create an activity log entry"""
+        ActivityLog.objects.create(
+            actor=self.request.user,
+            action_type=action,
+            shop=shop_instance,
+            shop_name_snapshot=shop_instance.name,
+            changes=changes or {}
+        )
+
+
+    def perform_create(self, serializer):
+        """
+        Set the created_by field to the authenticated agent when creating a shop.
+        """
+        # 1. Save the shop
+        shop = serializer.save(created_by=self.request.user)
+        
+        # 2. Log the creation
+        self._log_activity('CREATE', shop, changes={"msg": "Shop created"})
+
+    def perform_update(self, serializer):
+        # 1. Get the old instance BEFORE saving
+        instance = self.get_object()
+        
+        # 2. Track changes
+        changes = {}
+        # Compare specific fields you care about
+        fields_to_check = ['name', 'phone_number', 'address', 'state', 'is_active', 'description']
+        
+        for field in fields_to_check:
+            old_val = getattr(instance, field)
+            new_val = serializer.validated_data.get(field, old_val)
+            
+            # Convert to string for comparison to avoid type issues
+            if str(old_val) != str(new_val):
+                changes[field] = {'old': str(old_val), 'new': str(new_val)}
+
+        # 3. Save the update
+        updated_shop = serializer.save()
+
+        # 4. Log only if there were changes
+        if changes:
+            self._log_activity('UPDATE', updated_shop, changes=changes)
+
+    def perform_destroy(self, instance):
+        # Log before deletion so we have the ID
+        self._log_activity('DELETE', instance, changes={"msg": "Shop deleted"})
+        instance.delete()
+
     def get_permissions(self):
         """
         Override to apply custom object-level permissions for update/delete actions.
@@ -40,12 +90,6 @@ class ShopViewSet(viewsets.ModelViewSet):
             # Apply object-level permission for agents to restrict to their own shops
             self.permission_classes = [IsAuthenticated, IsAgentForOwnShops]
         return super().get_permissions()
-
-    def perform_create(self, serializer):
-        """
-        Set the created_by field to the authenticated agent when creating a shop.
-        """
-        serializer.save(created_by=self.request.user)
 
     def get_queryset(self):
         """
@@ -71,3 +115,26 @@ class MyShopsView(views.APIView):
         shops = Shop.objects.filter(created_by=request.user).order_by('-date_created')
         serializer = ShopSerializer(shops, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only endpoint for Admins to view history.
+    """
+    queryset = ActivityLog.objects.all()
+    serializer_class = ActivityLogSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrDeveloper] # Only Admins see logs
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        shop_id = self.request.query_params.get('shop_id')
+        agent_id = self.request.query_params.get('agent_id')
+
+        if shop_id:
+            queryset = queryset.filter(shop_id=shop_id)
+        if agent_id:
+             # Assuming Agent model is linked to User via OneToOne or similar, 
+             # you might need to filter by actor__agent__agent_id or similar depending on your User setup.
+             # For now, let's filter by the User ID associated with the agent
+             queryset = queryset.filter(actor__id=agent_id) 
+        
+        return queryset
