@@ -1,9 +1,9 @@
 // src/pages/ShopsPage.jsx
 import React, { useState, useEffect } from "react";
-import ShopTable from "../components/ShopTable";
-import ShopMap from "../components/ShopMap";
-import ExpandedMap from "../components/ExpandedMap"; 
-import api from "../api/api";
+import ShopTable from "../../components/ShopTable";
+import ShopMap from "../../components/ShopMap";
+import ExpandedMap from "../../components/ExpandedMap"; 
+import api from "../../api/api";
 import { Search, X, Maximize2, CheckCircle, Clock, XCircle } from "lucide-react"; // Added icons
 import { useLocation } from "react-router-dom";
 

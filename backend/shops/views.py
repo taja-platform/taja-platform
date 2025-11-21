@@ -6,6 +6,11 @@ from .models import Shop, ActivityLog
 from .serializers import ShopSerializer, ActivityLogSerializer
 from accounts.permissions import IsAgent, IsAdminOrDeveloper 
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.db.models import Count, Q
+from accounts.models import User
+from django.utils import timezone
+
+
 class IsAgentForOwnShops(BasePermission):
     """
     Custom permission to allow agents to edit/delete only shops they created.
@@ -163,3 +168,68 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
              queryset = queryset.filter(actor__id=agent_id) 
         
         return queryset
+    
+
+class DashboardStatsView(views.APIView):
+    """
+    Returns aggregated statistics for the dashboard.
+    - Global stats (Total shops, Pending, Rejected, etc.)
+    - Agent performance metrics
+    """
+    permission_classes = [IsAuthenticated, IsAdminOrDeveloper] 
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.now().date()
+        
+        # --- 1. Global Shop Statistics ---
+        # We use aggregate to run 1 single efficient query for all shop counts
+        shop_stats = Shop.objects.aggregate(
+            total_shops=Count('id'),
+            pending_reviews=Count('id', filter=Q(verification_status=Shop.VerificationStatus.PENDING)),
+            rejected_reviews=Count('id', filter=Q(verification_status=Shop.VerificationStatus.REJECTED)),
+            verified_shops=Count('id', filter=Q(verification_status=Shop.VerificationStatus.VERIFIED)),
+            captured_by_agents=Count('id', filter=Q(created_by__isnull=False)), # Shops with an agent assigned
+        )
+
+        # --- 2. Agent Statistics ---
+        total_agents = User.objects.filter(role=User.Role.AGENT).count()
+        
+        # Shops captured specifically TODAY (Global)
+        shops_captured_today_global = Shop.objects.filter(date_created__date=today).count()
+
+        # --- 3. Specific Agent Performance (Optional Query Param) ---
+        # usage: /api/shops/stats/?agent_id=12
+        agent_stats = None
+        target_agent_id = request.query_params.get('agent_id')
+        
+        if target_agent_id:
+            # Calculate stats for a specific agent requested via params
+            agent_stats = self._get_agent_stats(target_agent_id, today)
+        elif request.user.role == User.Role.AGENT:
+            # If the caller is an Agent, automatically show their own stats
+            agent_stats = self._get_agent_stats(request.user.id, today)
+
+        # Compile Response
+        data = {
+            "global_overview": {
+                "total_shops": shop_stats['total_shops'],
+                "total_agents": total_agents,
+                "pending_reviews": shop_stats['pending_reviews'],
+                "rejected_reviews": shop_stats['rejected_reviews'],
+                "verified_shops": shop_stats['verified_shops'],
+                "total_captured_by_agents": shop_stats['captured_by_agents'],
+                "shops_captured_today": shops_captured_today_global,
+            },
+            "agent_performance": agent_stats
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def _get_agent_stats(self, user_id, today):
+        """Helper to aggregate stats for a single agent"""
+        return Shop.objects.filter(created_by_id=user_id).aggregate(
+            total_captured=Count('id'),
+            captured_today=Count('id', filter=Q(date_created__date=today)),
+            pending=Count('id', filter=Q(verification_status=Shop.VerificationStatus.PENDING)),
+            rejected=Count('id', filter=Q(verification_status=Shop.VerificationStatus.REJECTED))
+        )

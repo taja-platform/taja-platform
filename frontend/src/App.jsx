@@ -7,11 +7,10 @@ import DashboardLayout from "./components/layouts/DashboardLayout";
 
 // Pages
 import LoginPage from "./pages/Login";
-import HomePage from "./pages/HomePage";
-import AgentsPage from "./pages/AgentsPage";
-import ShopsPage from "./pages/ShopsPage";
+import AgentsPage from "./pages/admin/AgentsPage";
+import ShopsPage from "./pages/admin/ShopsPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import AgentDashboard from "./pages/AgentDashboard";
+import AgentDashboard from "./pages/agent/AgentDashboard";
 
 
 
@@ -19,7 +18,7 @@ import AgentDashboard from "./pages/AgentDashboard";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AgentHomePage from "./pages/AgentHomePage";
+import AgentHomePage from "./pages/agent/AgentHomePage";
 import RoleBasedRedirect from "./components/auth/RoleBasedRedirect";
 
 
@@ -46,7 +45,7 @@ function App() {
           
           {/* General Dashboard Routes */}
           <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<HomePage />} />
+            <Route path="/dashboard" element={<AdminDashboard />} />
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/shops" element={<ShopsPage />} />
           </Route>

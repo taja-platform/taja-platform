@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
-import { ShopFormModal } from "../components/ShopFormModal";
+import { ShopFormModal } from "../../components/ShopFormModal";
 import { toast } from "sonner";
-import api from "../api/api";
+import api from "../../api/api";
 import {
   ChartColumnBig,
   LogOut,
@@ -12,7 +12,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function AgentHomePage() {
