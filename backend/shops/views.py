@@ -171,48 +171,38 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     
 
 class DashboardStatsView(views.APIView):
-    """
-    Returns aggregated statistics for the dashboard.
-    - Global stats (Total shops, Pending, Rejected, etc.)
-    - Agent performance metrics
-    """
     permission_classes = [IsAuthenticated, IsAdminOrDeveloper] 
 
     def get(self, request, *args, **kwargs):
         today = timezone.now().date()
         
         # --- 1. Global Shop Statistics ---
-        # We use aggregate to run 1 single efficient query for all shop counts
         shop_stats = Shop.objects.aggregate(
             total_shops=Count('id'),
+            active_shops=Count('id', filter=Q(is_active=True)), # <--- NEW LINE
             pending_reviews=Count('id', filter=Q(verification_status=Shop.VerificationStatus.PENDING)),
             rejected_reviews=Count('id', filter=Q(verification_status=Shop.VerificationStatus.REJECTED)),
             verified_shops=Count('id', filter=Q(verification_status=Shop.VerificationStatus.VERIFIED)),
-            captured_by_agents=Count('id', filter=Q(created_by__isnull=False)), # Shops with an agent assigned
+            captured_by_agents=Count('id', filter=Q(created_by__isnull=False)),
         )
 
         # --- 2. Agent Statistics ---
         total_agents = User.objects.filter(role=User.Role.AGENT).count()
-        
-        # Shops captured specifically TODAY (Global)
         shops_captured_today_global = Shop.objects.filter(date_created__date=today).count()
 
-        # --- 3. Specific Agent Performance (Optional Query Param) ---
-        # usage: /api/shops/stats/?agent_id=12
+        # --- 3. Agent Performance (Optional) ---
         agent_stats = None
         target_agent_id = request.query_params.get('agent_id')
         
         if target_agent_id:
-            # Calculate stats for a specific agent requested via params
             agent_stats = self._get_agent_stats(target_agent_id, today)
         elif request.user.role == User.Role.AGENT:
-            # If the caller is an Agent, automatically show their own stats
             agent_stats = self._get_agent_stats(request.user.id, today)
 
-        # Compile Response
         data = {
             "global_overview": {
                 "total_shops": shop_stats['total_shops'],
+                "active_shops": shop_stats['active_shops'], 
                 "total_agents": total_agents,
                 "pending_reviews": shop_stats['pending_reviews'],
                 "rejected_reviews": shop_stats['rejected_reviews'],

@@ -6,7 +6,8 @@ import {
   ClockIcon, 
   XCircleIcon,
   CalendarIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon, 
+  CheckCircleIcon
 } from "@heroicons/react/24/outline";
 import StatCard from "../../components/specifics/StatCard";
 import api from "../../api/api";
@@ -15,6 +16,7 @@ export default function AdminDashboard() {
   // 1. Consolidate state into a single object matching the API response
   const [stats, setStats] = useState({
     total_shops: 0,
+    active_shops: 0,  
     total_agents: 0,
     pending_reviews: 0,
     rejected_reviews: 0,
@@ -74,6 +76,20 @@ export default function AdminDashboard() {
             value={loading ? "..." : stats.total_agents.toLocaleString()}
             icon={UsersIcon}
             color="text-indigo-600"
+          />
+        </div>
+
+        {/* NEW: Active Shops */}
+        <div onClick={() => navigate("/shops?is_active=true")} className="cursor-pointer transition-transform hover:scale-[1.02]">
+          <StatCard
+            title="Active Shops"
+            value={loading ? "..." : stats.active_shops.toLocaleString()}
+            icon={CheckCircleIcon}
+            color="text-emerald-600"
+            // Optional: Show percentage of total
+            growthRate={stats.total_shops > 0 
+              ? `${Math.round((stats.active_shops / stats.total_shops) * 100)}%` 
+              : "0%"} 
           />
         </div>
 
