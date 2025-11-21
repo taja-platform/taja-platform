@@ -67,11 +67,25 @@ export default function ShopHistory({ shopId }) {
                             ) : (
                                 <ul className="space-y-1">
                                     {Object.entries(log.changes).map(([field, values]) => (
-                                        <li key={field} className="flex items-center space-x-2">
-                                            <span className="font-semibold uppercase text-gray-500 text-[10px] w-16">{field}:</span>
-                                            <span className="line-through text-red-400">{values.old || 'Empty'}</span>
-                                            <ArrowRight className="w-3 h-3 text-gray-400"/>
-                                            <span className="text-green-600 font-medium">{values.new}</span>
+                                        <li key={field} className="flex items-center gap-2"> {/* Changed space-x-2 to gap-2 for better spacing control */}
+                                            
+                                            {/* 1. Increased width, added shrink-0 so it doesn't squash, and truncate for safety */}
+                                            <span className="font-semibold uppercase text-gray-500 text-[10px] min-w-[120px] shrink-0 truncate" title={field}>
+                                                {field}:
+                                            </span>
+
+                                            {/* 2. Wrapped values in a flex container to handle overflow gracefully */}
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="line-through text-red-400 truncate max-w-[150px]">
+                                                    {values.old || 'Empty'}
+                                                </span>
+                                                
+                                                <ArrowRight className="w-3 h-3 text-gray-400 shrink-0"/>
+                                                
+                                                <span className="text-green-600 font-medium truncate">
+                                                    {values.new}
+                                                </span>
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
