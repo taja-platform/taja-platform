@@ -13,9 +13,158 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Trash2,
+  X,
+  AlertCircle,
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import ShopDetailsModal from "./modals/ShopDetailsModal";
+
+// Bulk Action Modal Component
+const BulkActionModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  action,
+  selectedCount,
+}) => {
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [error, setError] = useState("");
+
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    if (action === "REJECTED" && !rejectionReason.trim()) {
+      setError("Please provide a rejection reason");
+      return;
+    }
+    onConfirm(rejectionReason);
+    setRejectionReason("");
+    setError("");
+  };
+
+  const handleClose = () => {
+    setRejectionReason("");
+    setError("");
+    onClose();
+  };
+
+  const getModalConfig = () => {
+    switch (action) {
+      case "VERIFIED":
+        return {
+          title: "Verify Selected Shops",
+          icon: <CheckCircle className="w-6 h-6 text-green-600" />,
+          message: `Are you sure you want to verify ${selectedCount} shop${
+            selectedCount > 1 ? "s" : ""
+          }?`,
+          confirmText: "Verify",
+          confirmClass: "bg-green-600 hover:bg-green-700 text-white",
+        };
+      case "REJECTED":
+        return {
+          title: "Reject Selected Shops",
+          icon: <XCircle className="w-6 h-6 text-red-600" />,
+          message: `You are about to reject ${selectedCount} shop${
+            selectedCount > 1 ? "s" : ""
+          }.`,
+          confirmText: "Reject",
+          confirmClass: "bg-red-600 hover:bg-red-700 text-white",
+          showInput: true,
+        };
+      case "DELETE":
+        return {
+          title: "Delete Selected Shops",
+          icon: <Trash2 className="w-6 h-6 text-gray-800" />,
+          message: `Are you sure you want to delete ${selectedCount} shop${
+            selectedCount > 1 ? "s" : ""
+          }? This action cannot be undone.`,
+          confirmText: "Delete",
+          confirmClass: "bg-gray-800 hover:bg-gray-900 text-white",
+        };
+      default:
+        return {};
+    }
+  };
+
+  const config = getModalConfig();
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        {/* Overlay */}
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 transition-opacity"
+          onClick={handleClose}
+        />
+
+        {/* Modal */}
+        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">{config.icon}</div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {config.title}
+              </h3>
+            </div>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-600 mb-4">{config.message}</p>
+
+            {config.showInput && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => {
+                    setRejectionReason(e.target.value);
+                    setError("");
+                  }}
+                  placeholder="Enter reason for rejection..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  rows="3"
+                />
+                {error && (
+                  <div className="flex items-center mt-2 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {error}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end space-x-3">
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${config.confirmClass}`}
+            >
+              {config.confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function ShopTable({ filters }) {
   const [rawShops, setRawShops] = useState([]);
@@ -25,6 +174,10 @@ export default function ShopTable({ filters }) {
 
   // State for the currently open modal
   const [selectedShop, setSelectedShop] = useState(null);
+
+  // Bulk action modal state
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [currentBulkAction, setCurrentBulkAction] = useState(null);
 
   const shopsPerPage = 10;
 
@@ -42,15 +195,21 @@ export default function ShopTable({ filters }) {
     }
   };
 
-  const handleBulkAction = async (action, reason = "") => {
+  const handleOpenBulkModal = (action) => {
+    if (selectedIds.length === 0) return;
+    setCurrentBulkAction(action);
+    setBulkModalOpen(true);
+  };
+
+  const handleBulkAction = async (reason = "") => {
     if (selectedIds.length === 0) return;
 
     const updates = selectedIds.map(async (id) => {
       try {
         const payload =
-          action === "REJECTED"
+          currentBulkAction === "REJECTED"
             ? { verification_status: "REJECTED", rejection_reason: reason }
-            : { verification_status: action };
+            : { verification_status: currentBulkAction };
 
         await api.patch(`/shops/${id}/`, payload);
         return id;
@@ -62,11 +221,13 @@ export default function ShopTable({ filters }) {
 
     await Promise.all(updates);
 
-    toast.success(`Bulk ${action.toLowerCase()} completed`);
+    toast.success(`Bulk ${currentBulkAction.toLowerCase()} completed`);
 
     // Refresh list visually
     fetchShops();
     setSelectedIds([]);
+    setBulkModalOpen(false);
+    setCurrentBulkAction(null);
   };
 
   const fetchShops = async () => {
@@ -169,13 +330,10 @@ export default function ShopTable({ filters }) {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   // --- LIVE UPDATE HANDLER ---
-  // This function is passed to the Modal. When the modal updates a shop,
-  // we update our local state here so the table reflects the change immediately.
   const handleShopUpdate = (updatedShop) => {
     setRawShops((prevShops) =>
       prevShops.map((shop) => (shop.id === updatedShop.id ? updatedShop : shop))
     );
-    // Also update the selected shop state to keep the modal in sync if needed
     if (selectedShop && selectedShop.id === updatedShop.id) {
       setSelectedShop(updatedShop);
     }
@@ -259,34 +417,40 @@ export default function ShopTable({ filters }) {
         <>
           <div className="overflow-x-auto border border-gray-200 rounded-xl">
             {selectedIds.length > 0 && (
-              <div className="flex items-center justify-between mb-3 p-3 bg-gray-100 border border-gray-300 rounded-xl">
-                <span className="text-sm font-medium text-gray-700">
-                  {selectedIds.length} selected
-                </span>
+              <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl m-4">
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-lg text-sm font-semibold">
+                    {selectedIds.length}
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {selectedIds.length} shop{selectedIds.length > 1 ? "s" : ""}{" "}
+                    selected
+                  </span>
+                </div>
 
-                <div className="flex gap-2">
+                <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => handleBulkAction("VERIFIED")}
-                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm"
+                    onClick={() => handleOpenBulkModal("VERIFIED")}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
                   >
-                    Verify Selected
+                    <CheckCircle className="w-4 h-4 mr-1.5" />
+                    Verify
                   </button>
 
                   <button
-                    onClick={() => {
-                      const reason = prompt("Rejection reason:");
-                      if (reason) handleBulkAction("REJECTED", reason);
-                    }}
-                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm"
+                    onClick={() => handleOpenBulkModal("REJECTED")}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                   >
-                    Reject Selected
+                    <XCircle className="w-4 h-4 mr-1.5" />
+                    Reject
                   </button>
 
                   <button
-                    onClick={() => handleBulkAction("DELETE")}
-                    className="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-sm"
+                    onClick={() => handleOpenBulkModal("DELETE")}
+                    className="flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors"
                   >
-                    Delete Selected
+                    <Trash2 className="w-4 h-4 mr-1.5" />
+                    Delete
                   </button>
                 </div>
               </div>
@@ -405,7 +569,7 @@ export default function ShopTable({ filters }) {
         </>
       )}
 
-      {/* RENDER THE MODAL WITH LIVE UPDATE CALLBACK */}
+      {/* Shop Details Modal */}
       {selectedShop && (
         <ShopDetailsModal
           shop={selectedShop}
@@ -413,6 +577,18 @@ export default function ShopTable({ filters }) {
           onUpdate={handleShopUpdate}
         />
       )}
+
+      {/* Bulk Action Modal */}
+      <BulkActionModal
+        isOpen={bulkModalOpen}
+        onClose={() => {
+          setBulkModalOpen(false);
+          setCurrentBulkAction(null);
+        }}
+        onConfirm={handleBulkAction}
+        action={currentBulkAction}
+        selectedCount={selectedIds.length}
+      />
     </div>
   );
 }
