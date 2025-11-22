@@ -9,7 +9,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from accounts.views_auth import CustomTokenObtainPairView
-from fancy.views import home
+from fancy.views import home, health
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
@@ -26,6 +26,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("", home, name="home"),
+    path("health/", health, name="health"),
     path("admin/", admin.site.urls),
 
     # Swagger UI
