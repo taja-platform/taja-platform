@@ -5,7 +5,14 @@ import { Input } from "./utils/Input";
 import { Select } from "./utils/Select";
 import { CheckCircle, MapPin, Trash2, Upload, X } from "lucide-react";
 import { useCurrentLocation } from "../utils/getCurrentLocation";
-import imageCompression from 'browser-image-compression';
+import imageCompression from "browser-image-compression";
+
+const normalizeFile = (file) => {
+  if (!file.name || file.name === "blob") {
+    return new File([file], `photo_${Date.now()}.jpg`, { type: file.type });
+  }
+  return file;
+};
 
 export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const isEditing = !!shop?.id;
@@ -52,7 +59,8 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
     setImageError(null);
   };
 
-  const handleImageChange = async (e) => { // Make async
+  const handleImageChange = async (e) => {
+    // Make async
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
@@ -66,10 +74,10 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
 
     // Options for high quality but low file size
     const options = {
-      maxSizeMB: 1.5,          // Max file size (Cloudinary handles up to 10MB, but 1.5MB is plenty for web)
-      maxWidthOrHeight: 1920,  // 1920px is Full HD. 4k images are overkill for phone screens.
-      useWebWorker: true,      // Runs in background thread (doesn't freeze UI)
-      fileType: "image/webp"   // WebP is smaller and better quality than JPEG
+      maxSizeMB: 1.5, // Max file size (Cloudinary handles up to 10MB, but 1.5MB is plenty for web)
+      maxWidthOrHeight: 1920, // 1920px is Full HD. 4k images are overkill for phone screens.
+      useWebWorker: true, // Runs in background thread (doesn't freeze UI)
+      fileType: "image/webp", // WebP is smaller and better quality than JPEG
     };
 
     setIsLoading(true); // Show loading while compressing
@@ -77,16 +85,16 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
       const compressedFiles = await Promise.all(
         files.map(async (file) => {
           // Keep original if it's already small
-          if (file.size / 1024 / 1024 < 1) return file; 
+          if (file.size / 1024 / 1024 < 1) return file;
           try {
-              return await imageCompression(file, options);
+            return await imageCompression(file, options);
           } catch (err) {
-              console.error("Compression failed, using original", err);
-              return file;
+            console.error("Compression failed, using original", err);
+            return file;
           }
         })
       );
-      
+
       setNewFiles((prev) => [...prev, ...compressedFiles]);
       setImageError(null);
     } catch (error) {
@@ -151,7 +159,7 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
     }
 
     newFiles.forEach((file) => {
-      data.append("uploaded_photos", file);
+      data.append("uploaded_photos", normalizeFile(file));
     });
 
     setIsLoading(true);
@@ -276,7 +284,6 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
 
               {canAddMorePhotos && (
                 <>
-                  // 1. Two different file inputs
                   <input
                     id="camera-upload"
                     type="file"
@@ -294,7 +301,6 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
                     className="hidden"
                     disabled={!canAddMorePhotos || isLoading}
                   />
-                  // 2. Main button that opens a chooser
                   <label
                     htmlFor="photo-options"
                     className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-colors"
@@ -303,7 +309,6 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
                     <Upload size={24} />
                     <span className="text-xs mt-1">Add Photo</span>
                   </label>
-                  // 3. Options popup (simple)
                   {showOptions && (
                     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                       <div className="bg-white p-4 rounded-lg shadow w-60">
