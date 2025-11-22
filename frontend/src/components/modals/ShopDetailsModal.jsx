@@ -82,8 +82,7 @@ export default function ShopDetailsModal({ shop: initialShopData, onClose, onUpd
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div 
+        <div className="fixed inset-0 z-[60] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">        <div 
           className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
