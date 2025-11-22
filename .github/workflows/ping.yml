@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping health endpoint
         run: |
-          curl -I https://taja-platform.onrender.com/health/?value=9 || true
+          curl -I https://taja-backend.onrender.com/health/?value=9 || true
