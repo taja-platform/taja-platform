@@ -28,6 +28,7 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const [existingPhotos, setExistingPhotos] = useState(shop?.photos || []);
   const [newFiles, setNewFiles] = useState([]);
   const [deletedPhotoIds, setDeletedPhotoIds] = useState([]);
+  const [showOptions, setShowOptions] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(null);
@@ -247,23 +248,68 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
               ))}
 
               {canAddMorePhotos && (
-                <label
-                  htmlFor="photo-upload"
-                  className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-colors"
-                >
-                  <Upload size={24} />
-                  <span className="text-xs mt-1">Add Photo</span>
+                <>
+                  // 1. Two different file inputs
                   <input
-                    id="photo-upload"
+                    id="camera-upload"
                     type="file"
-                    accept="image/jpeg,image/png"
-                    multiple
+                    accept="image/*"
                     capture="environment"
                     onChange={handleImageChange}
                     className="hidden"
                     disabled={!canAddMorePhotos || isLoading}
                   />
-                </label>
+                  <input
+                    id="gallery-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    disabled={!canAddMorePhotos || isLoading}
+                  />
+                  // 2. Main button that opens a chooser
+                  <label
+                    htmlFor="photo-options"
+                    className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-colors"
+                    onClick={() => setShowOptions(true)}
+                  >
+                    <Upload size={24} />
+                    <span className="text-xs mt-1">Add Photo</span>
+                  </label>
+                  // 3. Options popup (simple)
+                  {showOptions && (
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                      <div className="bg-white p-4 rounded-lg shadow w-60">
+                        <button
+                          className="w-full py-2 border-b text-left"
+                          onClick={() => {
+                            document.getElementById("camera-upload")?.click();
+                            setShowOptions(false);
+                          }}
+                        >
+                          📷 Take Photo
+                        </button>
+
+                        <button
+                          className="w-full py-2 text-left"
+                          onClick={() => {
+                            document.getElementById("gallery-upload")?.click();
+                            setShowOptions(false);
+                          }}
+                        >
+                          🖼️ Upload from Gallery
+                        </button>
+
+                        <button
+                          className="w-full py-2 text-left mt-2 text-red-500"
+                          onClick={() => setShowOptions(false)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {totalCurrentPhotos === 0 && (
