@@ -532,48 +532,129 @@ const AgentDashboard = () => {
     }
   };
 
-  const ShopsManager = ({ shops, onAdd, onEdit, onView, isLoading }) => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Shop Management</h1>
-        <button
-          onClick={onAdd}
-          className="flex items-center space-x-2 px-4 py-2 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors shadow-lg"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">Add New Shop</span>
-        </button>
+  const ShopsManager = ({ shops, onAdd, onEdit, onView, isLoading }) => {
+    const [activeFilter, setActiveFilter] = useState("ALL");
+    const [filteredShops, setFilteredShops] = useState(shops);
+
+    // Update filtered shops when shops or filter changes
+    useEffect(() => {
+      if (activeFilter === "ALL") {
+        setFilteredShops(shops);
+      } else {
+        setFilteredShops(
+          shops.filter((shop) => shop.verification_status === activeFilter)
+        );
+      }
+    }, [shops, activeFilter]);
+
+    // Calculate counts for each status
+    const counts = {
+      ALL: shops.length,
+      VERIFIED: shops.filter((s) => s.verification_status === "VERIFIED")
+        .length,
+      PENDING: shops.filter((s) => s.verification_status === "PENDING").length,
+      REJECTED: shops.filter((s) => s.verification_status === "REJECTED")
+        .length,
+    };
+
+    const filterButtons = [
+      { key: "ALL", label: "All Shops", icon: <Store className="w-4 h-4" /> },
+      {
+        key: "VERIFIED",
+        label: "Verified",
+        icon: <CheckCircle className="w-4 h-4" />,
+      },
+      { key: "PENDING", label: "Pending", icon: <Clock className="w-4 h-4" /> },
+      {
+        key: "REJECTED",
+        label: "Rejected",
+        icon: <XCircle className="w-4 h-4" />,
+      },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Shop Management</h1>
+          <button
+            onClick={onAdd}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Add New Shop</span>
+          </button>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+          <div className="flex flex-wrap gap-2">
+            {filterButtons.map(({ key, label, icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveFilter(key)}
+                className={`
+                flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
+                ${
+                  activeFilter === key
+                    ? "bg-gray-900 text-white shadow-md"
+                    : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                }
+              `}
+              >
+                {icon}
+                <span>{label}</span>
+                <span
+                  className={`
+                ml-1 px-2 py-0.5 rounded-full text-xs font-semibold
+                ${
+                  activeFilter === key
+                    ? "bg-white/20 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }
+              `}
+                >
+                  {counts[key]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-20 bg-white rounded-2xl shadow-xl">
+            <div className="w-10 h-10 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-[spin_0.5s_linear_infinite] mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading shops...</p>
+          </div>
+        )}
+
+        {/* Shops Grid */}
+        {!isLoading && filteredShops.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredShops.map((shop) => (
+              <ShopCard
+                key={shop.id}
+                shop={shop}
+                onEdit={onEdit}
+                onView={onView}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filteredShops.length === 0 && (
+          <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-500 font-medium">
+              {activeFilter === "ALL"
+                ? "No shops added yet. Start by adding your first shop!"
+                : `No ${activeFilter.toLowerCase()} shops found.`}
+            </p>
+          </div>
+        )}
       </div>
-
-      {isLoading && (
-        <div className="text-center py-20 bg-white rounded-2xl shadow-xl">
-          <div className="w-10 h-10 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-[spin_0.5s_linear_infinite] mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading shops...</p>
-        </div>
-      )}
-
-      {!isLoading && shops.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {shops.map((shop) => (
-            <ShopCard
-              key={shop.id}
-              shop={shop}
-              onEdit={onEdit}
-              onView={onView}
-            />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && shops.length === 0 && (
-        <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-          <p className="text-gray-500 font-medium">
-            No shops added yet. Start by adding your first shop!
-          </p>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   const navItems = [
     { title: "Dashboard", icon: LayoutDashboard, view: "dashboard" },

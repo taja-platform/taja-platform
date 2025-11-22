@@ -1,8 +1,17 @@
-import { ChevronLeft, ChevronRight, MapPin, Store } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Store,
+  Plus,
+  CheckCircle,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-// Make sure this path matches where you created the file above
-import { getOptimizedUrl } from '../utils/imageUtils';
+import { getOptimizedUrl } from "../utils/imageUtils";
 
+// Updated ShopCard with Status Badge
 export const ShopCard = ({ shop, onEdit, onView }) => {
   const shopPhotos = shop.photos || [];
   const hasPhotos = shopPhotos.length > 0;
@@ -34,12 +43,41 @@ export const ShopCard = ({ shop, onEdit, onView }) => {
     );
   };
 
-  // --- CHANGE HERE: OPTIMIZE THE URL ---
-  // We request a width of 600px. This is perfect for the card size
-  // but much smaller (file size) than the original upload.
   const currentImageUrl = hasPhotos
     ? getOptimizedUrl(shopPhotos[currentImageIndex].photo, 600)
     : null;
+
+  // Status Badge Component
+  const StatusBadge = ({ status }) => {
+    const configs = {
+      VERIFIED: {
+        icon: <CheckCircle className="w-3 h-3" />,
+        text: "Verified",
+        className: "bg-green-100 text-green-800 border-green-200",
+      },
+      REJECTED: {
+        icon: <XCircle className="w-3 h-3" />,
+        text: "Rejected",
+        className: "bg-red-100 text-red-800 border-red-200",
+      },
+      PENDING: {
+        icon: <Clock className="w-3 h-3" />,
+        text: "Pending",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      },
+    };
+
+    const config = configs[status] || configs.PENDING;
+
+    return (
+      <span
+        className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${config.className}`}
+      >
+        {config.icon}
+        <span>{config.text}</span>
+      </span>
+    );
+  };
 
   return (
     <div
@@ -52,8 +90,7 @@ export const ShopCard = ({ shop, onEdit, onView }) => {
             <img
               src={currentImageUrl}
               alt={`${shop.name} photo ${currentImageIndex + 1}`}
-              // Added loading="lazy" for better performance on long lists
-              loading="lazy" 
+              loading="lazy"
               className="w-full h-full object-cover transition-opacity duration-500 ease-in-out"
             />
             {shopPhotos.length > 1 && (
@@ -90,12 +127,19 @@ export const ShopCard = ({ shop, onEdit, onView }) => {
             <Store className="w-12 h-12 text-gray-300" />
           </div>
         )}
+
+        {/* Status Badge Overlay */}
+        <div className="absolute top-2 right-2 z-10">
+          <StatusBadge status={shop.verification_status} />
+        </div>
       </div>
+
       <h3 className="text-xl font-semibold text-gray-900 mb-1">{shop.name}</h3>
       <p className="text-sm text-gray-500 mb-3 flex items-center">
         <MapPin className="w-4 h-4 mr-2 text-gray-400" />
         {shop.address}
       </p>
+
       <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mb-4">
         <div>
           <span className="font-medium text-gray-500">Latitude:</span>{" "}
@@ -110,8 +154,12 @@ export const ShopCard = ({ shop, onEdit, onView }) => {
           {shop.date_created}
         </div>
       </div>
+
       <button
-        onClick={() => onEdit(shop)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(shop);
+        }}
         className="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors text-sm"
       >
         Edit Details
