@@ -9,6 +9,9 @@ import {
   Menu as MenuIcon,
   Plus,
   ChartColumnBig,
+  CheckCircle,
+  Clock,
+  XCircle,
 } from "lucide-react";
 
 import api from "../../api/api";
