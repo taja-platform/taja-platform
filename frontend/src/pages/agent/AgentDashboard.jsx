@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect, useCallback } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import { toast } from "sonner";
 import {
   X,
@@ -11,12 +11,12 @@ import {
   ChartColumnBig,
 } from "lucide-react";
 
-import api from "../api/api";
-import { ShopInfoModal } from "../components/ShopInfoModal";
-import { ShopCard } from "../components/ShopCard";
-import { ShopFormModal } from "../components/ShopFormModal";
-import { Input } from "../components/utils/Input";
-import { Textarea } from "../components/utils/Textarea";
+import api from "../../api/api";
+import { ShopInfoModal } from "../../components/ShopInfoModal";
+import { ShopCard } from "../../components/ShopCard";
+import { ShopFormModal } from "../../components/ShopFormModal";
+import { Input } from "../../components/utils/Input";
+import { Textarea } from "../../components/utils/Textarea";
 import { Navigate, useLocation } from "react-router-dom";
 
 const LayoutDashboard = (props) => (
@@ -547,7 +547,7 @@ const AgentDashboard = () => {
 
       {isLoading && (
         <div className="text-center py-20 bg-white rounded-2xl shadow-xl">
-          <div className="w-10 h-10 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-10 h-10 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-[spin_0.5s_linear_infinite] mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">Loading shops...</p>
         </div>
       )}

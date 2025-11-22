@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "cloudinary",
     "cloudinary_storage",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [
@@ -55,6 +56,18 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Swagger settings (optional)
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+        }
+    },
+}
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -150,10 +163,10 @@ CLOUDINARY_STORAGE = {
 }
 
 
-if DEBUG:
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-else:
-    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+# if DEBUG:
+#     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+# else:
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 
 # ---------------------------------------------------------------------
@@ -195,8 +208,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # Let WhiteNoise serve static files efficiently
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# if DEBUG:
+#     MEDIA_URL = "/media/"
+#     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # ---------------------------------------------------------------------
 # CACHE (Optional: You can remove if not using Redis)

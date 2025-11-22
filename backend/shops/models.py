@@ -2,8 +2,10 @@
 from django.db import models
 from accounts.models import StoreOwner, Agent
 from PIL import Image
-from .validators import validate_image  # place validator in validators.py
-import os
+from .validators import validate_image 
+from cloudinary_storage.storage import MediaCloudinaryStorage
+from django.conf import settings
+
 
 class Shop(models.Model):
     owner = models.ForeignKey(
@@ -34,8 +36,21 @@ class Shop(models.Model):
     description = models.TextField(blank=True, null=True)
 
 
+    class VerificationStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Review'
+        VERIFIED = 'VERIFIED', 'Verified'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    verification_status = models.CharField(
+        max_length=10,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.PENDING
+    )
+    
+    rejection_reason = models.TextField(blank=True, null=True)
+
     # System fields
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -52,35 +67,40 @@ class ShopPhoto(models.Model):
         related_name="photos"
     )
     photo = models.ImageField(
-        upload_to="shop_photos/",
-        validators=[validate_image]
+        upload_to="shop_photos", 
+        validators=[validate_image],
+        storage=MediaCloudinaryStorage() # Forces Cloudinary upload
     )
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        img_path = self.photo.path
-        
-        with Image.open(img_path) as img:
-            # --- START: Improved Image Processing Logic ---
-            img_format = img.format.upper() # Get original format (JPEG, PNG, etc.)
-
-            # Handle PNG transparency
-            if img.mode in ('RGBA', 'LA'):
-                # Create a white background and paste the image onto it
-                background = Image.new(img.mode[:-1], img.size, (255, 255, 255))
-                background.paste(img, img.split()[-1])
-                img = background
-
-            # Resize if too big
-            max_size = (800, 800)
-            img.thumbnail(max_size)
-
-            # Save with appropriate format and options
-            if img_format == 'JPEG':
-                img.save(img_path, format='JPEG', quality=80, optimize=True)
-            else:
-                # Saves PNGs and other formats correctly
-                img.save(img_path, format=img_format)
 
     def __str__(self):
         return f"Photo for {self.shop.name}"
+
+
+class ActivityLog(models.Model):
+    ACTION_TYPES = (
+        ('CREATE', 'Create'),
+        ('UPDATE', 'Update'),
+        ('DELETE', 'Delete'),
+    )
+
+    # Who did it?
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='shop_activities')
+    action_type = models.CharField(max_length=10, choices=ACTION_TYPES)
+    
+    # Which shop? (Nullable in case shop is deleted)
+    shop = models.ForeignKey(Shop, on_delete=models.SET_NULL, null=True, blank=True, related_name='logs')
+    
+    # Snapshot of the name (so we know what it was even if shop is deleted)
+    shop_name_snapshot = models.CharField(max_length=200)
+    
+    # Stores details like: {"phone_number": {"old": "111", "new": "222"}}
+    changes = models.JSONField(default=dict, blank=True) 
+    
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.actor} {self.action_type} {self.shop_name_snapshot}"

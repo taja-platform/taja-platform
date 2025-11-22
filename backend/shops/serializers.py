@@ -1,6 +1,6 @@
 import json
 from rest_framework import serializers
-from .models import Shop, ShopPhoto
+from .models import Shop, ShopPhoto, ActivityLog
 from accounts.models import StoreOwner # Import needed for Role check
 from .services import get_location_details
 
@@ -15,14 +15,20 @@ class ShopPhotoSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
         
     def get_photo(self, obj):
-        """
-        Returns the absolute URL for the photo file using the request context.
-        """
-        request = self.context.get('request')
-        if obj.photo:
-            # obj.photo.url gives the relative URL (e.g., /media/shop_photos/...)
-            return request.build_absolute_uri(obj.photo.url) if request else obj.photo.url
-        return None
+        if not obj.photo:
+            return None
+            
+        try:
+            url = obj.photo.url
+            # FIX: If it's already a full URL (Cloudinary), return it directly
+            if url.startswith("http"):
+                return url
+            
+            # Otherwise (Local development), append the request domain
+            request = self.context.get('request')
+            return request.build_absolute_uri(url) if request else url
+        except Exception:
+            return None
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -59,6 +65,8 @@ class ShopSerializer(serializers.ModelSerializer):
             "is_active",
             "date_created",
             "date_updated",
+            "verification_status", 
+            "rejection_reason",
             "state",
             "local_government_area",
             "description", # Added description here from models.py
@@ -71,17 +79,24 @@ class ShopSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "date_created", "date_updated", "owner", "created_by", "created_by_id"]
         
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Conditional read_only for is_active field based on user role
+        
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             user = request.user
-            # Assuming Role is an enum on the User model
-            if user.role in [StoreOwner.Role.ADMIN, StoreOwner.Role.DEVELOPER] and request.method in ['PUT', 'PATCH']:
-                # Allow Admin/Developer to update is_active status
-                self.fields['is_active'].read_only = False 
-
+            
+            # Logic: Only Admins can change verification_status/reason directly
+            # Agents cannot touch these fields directly via API (handled by logic in ViewSet)
+            if user.role not in [StoreOwner.Role.ADMIN, StoreOwner.Role.DEVELOPER]:
+                self.fields['verification_status'].read_only = True
+                self.fields['rejection_reason'].read_only = True
+                self.fields['is_active'].read_only = True
+            else:
+                 # Admins can edit these
+                 pass
+            
     def _geocode_and_update(self, validated_data):
             """Helper to geocode and add location details to validated_data."""
             latitude = validated_data.get("latitude")
@@ -150,3 +165,18 @@ class ShopSerializer(serializers.ModelSerializer):
         instance.refresh_from_db()
 
         return instance
+    
+
+class ActivityLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ActivityLog
+        fields = ['id', 'actor_name', 'action_type', 'shop_name_snapshot', 'changes', 'timestamp']
+
+    def get_actor_name(self, obj):
+        if obj.actor:
+            # Return "First Last" or Email if name is missing
+            name = f"{obj.actor.first_name} {obj.actor.last_name}".strip()
+            return name if name else obj.actor.email
+        return "System"

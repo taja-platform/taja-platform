@@ -1,3 +1,4 @@
+// src/pages/Login.jsx
 import { useEffect, useState, useContext } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -15,20 +16,11 @@ export default function SignIn() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      console.table("Logged in user:", user);
-      if (user.role === "admin" || user.role === "developer") {
-        navigate("/admin");
-        return;
+      if (user) {
+
+        navigate("/", { replace: true });
       }
-      if (user.user) {
-        if (user.user.role === "agent") {
-          navigate("/agent");
-          return;
-        }
-      }
-    }
-  }, [user, navigate]);
+  }, [user, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault();
