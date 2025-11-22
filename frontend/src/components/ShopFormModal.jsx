@@ -7,13 +7,6 @@ import { CheckCircle, MapPin, Trash2, Upload, X } from "lucide-react";
 import { useCurrentLocation } from "../utils/getCurrentLocation";
 import imageCompression from "browser-image-compression";
 
-const normalizeFile = (file) => {
-  if (!file.name || file.name === "blob") {
-    return new File([file], `photo_${Date.now()}.jpg`, { type: file.type });
-  }
-  return file;
-};
-
 export const ShopFormModal = ({ shop, onClose, onSave }) => {
   const isEditing = !!shop?.id;
   const MAX_PHOTOS = 5;
@@ -159,7 +152,7 @@ export const ShopFormModal = ({ shop, onClose, onSave }) => {
     }
 
     newFiles.forEach((file) => {
-      data.append("uploaded_photos", normalizeFile(file));
+      data.append("uploaded_photos", file);
     });
 
     setIsLoading(true);
