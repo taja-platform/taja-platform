@@ -31,6 +31,8 @@ def health(request):
         except ValueError:
             result = "Invalid number"
     else:
+        num = int(value)
+        result = num * 2
         result = "OK"
 
     return JsonResponse({
