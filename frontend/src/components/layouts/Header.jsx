@@ -14,7 +14,8 @@ import {
   UserCircle2,
   Mail,
   ShieldCheck,
-  Search
+  Search,
+  Loader2 // Imported Loader icon
 } from "lucide-react";
 
 // Import the modals
@@ -28,6 +29,9 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Loading State for Profile Save
+  const [isSaving, setIsSaving] = useState(false);
   
   // Profile Form State
   const [formData, setFormData] = useState({
@@ -110,6 +114,7 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
   };
 
   const handleSave = async () => {
+    setIsSaving(true); // Start loading
     try {
       const res = await api.patch("/accounts/me/", formData);
       toast.success("Profile updated successfully!");
@@ -118,6 +123,8 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
     } catch (err) {
       toast.error("Failed to update profile.");
       console.error(err);
+    } finally {
+      setIsSaving(false); // Stop loading
     }
   };
 
@@ -177,7 +184,8 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                     <p className="text-sm font-semibold text-gray-900 leading-none">
                         {user?.first_name || user?.username || "Admin"}
                     </p>
-                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                    {/* Added 'capitalize' class here */}
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5 capitalize">
                         {user?.role || "Administrator"}
                     </p>
                 </div>
@@ -296,8 +304,9 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                   Edit Profile
                 </h2>
                 <button 
-                    onClick={() => setShowEditModal(false)}
-                    className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                    onClick={() => !isSaving && setShowEditModal(false)}
+                    disabled={isSaving}
+                    className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -313,7 +322,8 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                         name="first_name"
                         value={formData.first_name}
                         onChange={handleChange}
-                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-gray-50 focus:bg-white transition-all"
+                        disabled={isSaving}
+                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-gray-50 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="First Name"
                         />
                     </div>
@@ -326,7 +336,8 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                         name="last_name"
                         value={formData.last_name}
                         onChange={handleChange}
-                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-gray-50 focus:bg-white transition-all"
+                        disabled={isSaving}
+                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-gray-50 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="Last Name"
                         />
                     </div>
@@ -341,8 +352,9 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
+                        disabled={isSaving}
                         type="email"
-                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-gray-50 focus:bg-white transition-all"
+                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-gray-50 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="name@company.com"
                     />
                 </div>
@@ -352,7 +364,10 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                   <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
                       <p className="text-xs font-semibold text-blue-800">Admin Privileges</p>
-                      <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">Your role as {user?.role || 'Admin'} allows you to manage shops and agents.</p>
+                      {/* Added 'capitalize' class here as well */}
+                      <p className="text-xs text-blue-600 mt-0.5 leading-relaxed capitalize">
+                          Your role as {user?.role || 'Admin'} allows you to manage shops and agents.
+                      </p>
                   </div>
               </div>
             </div>
@@ -360,15 +375,24 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
             <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-gray-100">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                disabled={isSaving}
+                className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="px-6 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all shadow-sm hover:shadow-md"
+                disabled={isSaving}
+                className="px-6 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed min-w-[130px] flex items-center justify-center"
               >
-                Save Changes
+                {isSaving ? (
+                    <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                    </>
+                ) : (
+                    "Save Changes"
+                )}
               </button>
             </div>
           </div>

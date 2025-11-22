@@ -39,9 +39,14 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Header / Logo Area */}
         <div className="flex items-center h-16 px-6 border-b border-gray-800/50 bg-gray-900">
           <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <div className="flex-shrink-0 w-8 h-8 bg-white rounded-lg flex items-center justify-center text-gray-900">
-              <Layers className="w-5 h-5" />
+            <div className="flex-shrink-0 w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+              <img
+                src="taja.svg"
+                alt="App logo"
+                className="w-20 h-20 object-contain"
+              />
             </div>
+
             <span
               className={`text-lg font-bold tracking-wide transition-opacity duration-300 ${
                 isOpen ? "opacity-100" : "opacity-0 lg:hidden"

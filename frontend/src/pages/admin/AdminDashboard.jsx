@@ -99,7 +99,7 @@ export default function AdminDashboard() {
     : 0;
 
   return (
-    <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-8">
+    <div className="p-3 md:p-6  max-w-[1600px] mx-auto space-y-8">
       
       {/* PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

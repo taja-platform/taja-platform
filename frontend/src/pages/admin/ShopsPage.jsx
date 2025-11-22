@@ -38,7 +38,7 @@ const VerificationTabs = ({ activeTab, onTabChange }) => {
   ];
 
   return (
-    <div className="flex space-x-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="flex space-x-3 mb-6 overflow-x-auto p-2 scrollbar-hide">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
